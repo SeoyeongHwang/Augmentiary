@@ -11,6 +11,9 @@ import pytz
 from st_copy_to_clipboard import st_copy_to_clipboard
 from werkzeug.security import check_password_hash  # 해싱 검증 함수
 
+# 한국시간 설정
+kst = pytz.timezone('Asia/Seoul')
+
 # 페이지 설정
 st.set_page_config(
     page_title="오늘 하루 돌아보기",
@@ -64,14 +67,14 @@ def login(user_id, password):
 # 세션 시작 및 활동 기록 함수
 def start_session_with_log(user_id):
     # 고유한 세션 ID 생성
-    session_id = f"{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    session_id = f"{user_id}_{datetime.now(kst).strftime('%Y%m%d%H%M%S')}"
 
     # Firestore 참조
     logs_ref = db.collection("users").document(user_id).collection("logs").document(session_id)
 
     # 세션 데이터 초기화
     logs_ref.set({
-        "start_time": datetime.now(),
+        "start_time": datetime.now(kst),
         "end_time": None,  # 초기값 null
         "activities": []   # 활동 배열 초기화
     })
@@ -83,24 +86,49 @@ def start_session_with_log(user_id):
     return session_id
 
 # Firestore에 데이터 저장
-def save_diary(user_id, diary_entry):
-    doc_ref = db.collection("diaries").document(user_id)
-    data = {
-        "entry": diary_entry,
-        "timestamp": datetime.datetime.now()
-    }
-    
-    # Firestore에 데이터 추가
-    diary_ref = diaries_ref.add(data)  # 문서 ID 자동 생성
-    diary_id = diary_ref[1].id
-    print(f"Diary saved with ID: {diary_id}")
+def save_diary(user_id: str, diary_entry: str, doc_counter: int = None):
+    """
+    Firestore에 일기 데이터를 저장하는 함수.
 
-    # 활동 기록 추가
-    session_id = get_active_session(user_id)
-    if session_id:
-        log_activity(user_id, session_id, f"Saved diary entry with ID: {diary_id}")
+    Args:
+        user_id (str): 사용자 ID
+        diary_entry (str): 저장할 일기 내용
+        doc_counter (int): 도큐먼트 번호 (옵션, 기본값은 자동 증가)
+    """
+    if diary_entry.strip():
+        try:
+            # 세션 ID 가져오기
+            session_id = st.session_state.get("session_id")
 
-    st.success("Diary saved successfully!")
+            # 도큐먼트 카운터 기본값 설정
+            if doc_counter is None:
+                # 현재 세션의 도큐먼트 수를 파악하기 위해 Firestore에서 조회
+                saved_diaries_ref = db.collection("users").document(user_id).collection("saved_diaries")
+                docs = saved_diaries_ref.stream()
+                doc_counter = sum(1 for _ in docs) + 1  # 기존 문서 수 + 1
+
+            # 도큐먼트 이름 생성
+            doc_name = f"{session_id}_{doc_counter}"
+
+            # Firestore 컬렉션 참조
+            doc_ref = db.collection("users").document(user_id).collection("saved_diaries").document()
+
+            # 데이터 저장
+            doc_ref.set({
+                "entry": diary_entry,
+                "timestamp": datetime.now(kst)
+            })
+            
+            # 활동 기록 추가
+            session_id = st.session_state["session_id"]
+            if session_id:
+                log_activity(user_id, session_id, f"Saved diary entry.")
+
+            # 토스트 메시지
+            st.toast("일기 저장을 완료하였습니다!", icon=":material/check:")
+
+        except Exception as e:
+            print(f"Error saving diary: {e}")
 
 # 활동 기록 함수
 def log_activity(user_id, session_id, activity):
@@ -115,7 +143,7 @@ def log_activity(user_id, session_id, activity):
         # 활동 추가
         activities.append({
             "activity": activity,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(kst)
         })
         session_ref.update({"activities": activities})
         print(f"Activity '{activity}' logged for session {session_id}.")
@@ -130,19 +158,24 @@ initialize_openai_api()
 ## -------------------------------------------------------------------------------------------------
 ## Not logged in -----------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
-# Firebase 기반 로그인 UI
+# Firebase 기반 로그인 UI. 로그인 성공 시 세션에 user_id와 session_id 저장
 if "user_id" not in st.session_state:
     st.title("일기 작성하러 가기")
     user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
     password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
+
     if st.button("Login", use_container_width=True):
         login(user_id, password)
 ## -------------------------------------------------------------------------------------------------
 ## Logged in --------------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
 else:
-    # 로그인 성공 안내 메시지
-    st.toast(f"{st.session_state['user_id']}님, 환영합니다!", icon=":material/check:")
+    # 로그인 성공 시 세션 ID 설정
+    if "session_id" not in st.session_state:
+        st.session_state["session_id"] = start_session_with_log(st.session_state["user_id"])
+        
+        # 로그인 성공 안내 메시지
+        st.toast(f"{st.session_state['user_id']}님, 환영합니다!", icon=":material/check:")
 
     # API 클라이언트 초기화
     @st.cache_resource
@@ -172,8 +205,6 @@ else:
     }
 
     # 현재 날짜와 요일 가져오기
-    # 한국시간 설정
-    kst = pytz.timezone('Asia/Seoul')
     current_date = datetime.now(kst)
     current_day = current_date.strftime('%A')  # 영어 요일 가져오기
     translated_day = day_translation.get(current_day, current_day)  # 한국어로 변환
@@ -236,10 +267,15 @@ else:
         # diary_entry 수정 후 항상 diary_entry_value에 업데이트
         st.session_state.diary_entry_value = diary_entry  # 추가된 코드
 
-        if st.button("복사하기", icon=":material/content_copy:", type='secondary'):
-            # pyperclip.copy(st.session_state.diary_entry_value)  # 클립보드에 복사
-            st.toast("현재 복사 기능은 지원되지 않습니다.\n필요한 경우 직접 복사 해주세요.", icon=":material/error:")  # 사용자에게 알림
-            print('►복사: \n', st.session_state.diary_entry_value)
+        if st.button("처음으로", icon=":material/undo:", type='secondary'):
+            if st.session_state['initial_diary']:
+                st.session_state.diary_entry = st.session_state['initial_diary']
+                # 어딘가에서 rerun 해줘야 함.
+                st.toast("처음 작성한 일기로 복원되었습니다!", icon=":material/check:")
+            else:
+                st.toast("아직 작성한 일기가 없습니다. 먼저 일기를 작성해주세요!", icon=":material/error:")
+        if st.button("저장하기", icon=":material/save:", type="secondary"):
+            save_diary(st.session_state['user_id'], st.session_state.diary_entry_value)
 
     with col2:
         selector = st.expander("하루에 관점 더하기", icon="🔮", expanded=st.session_state.expander_state)  # 세션 상태 사용
@@ -282,6 +318,12 @@ else:
                     try:
                         st.session_state.rerun_needed = True  # 새로 고침 필요 플래그 설정
                         st.toast("일기에 새로운 관점을 추가하고 있어요!", icon=":material/flare:")  # 사용자에게 알림
+
+                        # 처음 입력한 다이어리 -> initial_diary 에 저장 (세션 변수 및 DB)
+                        if 'initial_diary' not in st.session_state:
+                            st.session_state['initial_diary'] = diary_entry
+                            save_diary(st.session_state['user_id'], diary_entry)
+
                         with result_container:
                             with st.spinner("잠시만 기다려주세요..."):
                                 result = analyzer.augment_diary(
@@ -318,6 +360,7 @@ else:
                 if 'entry_update_notice' not in st.session_state:
                     st.session_state.entry_update_notice = True  # 기본적으로 열려 있음
                 print('►적용: \n', st.session_state.entry_update_notice)
+                log_activity(st.session_state['user_id'], st.session_state["session_id"], "Receive AI-augmented diary.")
                 st.rerun()  # 페이지를 새로 고침하여 텍스트 영역 업데이트
 
     if st.session_state.get('entry_update_notice', False):
