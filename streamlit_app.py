@@ -1,5 +1,7 @@
 import streamlit as st
 import openai  # OpenAI API 사용
+import firebase_admin
+from firebase_admin import credentials, auth, firestore
 from streamlit_extras.let_it_rain import rain
 from streamlit_extras.stylable_container import stylable_container
 from utils.api_client import DiaryAnalyzer
@@ -7,6 +9,7 @@ from datetime import datetime
 import pyperclip  # pyperclip 라이브러리 추가
 import pytz
 from st_copy_to_clipboard import st_copy_to_clipboard
+from werkzeug.security import check_password_hash  # 해싱 검증 함수
 
 # 페이지 설정
 st.set_page_config(
@@ -20,25 +23,126 @@ def load_css(filename):
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 load_css('style.css')
 
-# API 클 입력 모달
-@st.dialog("API Key 입력")
-def api_key_input():
-    st.write("앱 사용을 위해 OpenAI API 키를 입력하세요.")
-    api_key = st.text_input("OpenAI API 키", type="password", placeholder="sk-proj-...")
-    if st.button("완료", use_container_width=True):
-        if api_key == 'seoyeong':
-            st.session_state.api_key = st.secrets["general"]["OPENAI_API_KEY"]  # secrets에서 API 키 가져오기
-        else:
-            st.session_state.api_key = api_key  # 입력받은 API 키 사용
-        st.success("API 키가 설정되었습니다!")
-        st.rerun()  # 앱을 새로 고침하여 변경 사항 적용
+# Firebase 초기화
+if not firebase_admin._apps:
+    firebase_config = {
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"],
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+    }
+    cred = credentials.Certificate(firebase_config)
+    firebase_admin.initialize_app(cred)
 
-# 앱 시작 시 API 키 입력 모달 호출
-if 'api_key' not in st.session_state:
-    api_key_input()
+db = firestore.client()  # Firestore 클라이언트
+
+# 로그인 처리 (유저 정보 로드)
+def login(user_id, password):
+    # Firestore에서 사용자 문서 가져오기
+    user_doc = db.collection("users").document(user_id).get()
+    # 사용자 문서가 존재하는지 확인
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        print(user_data)
+        # 비밀번호 검증
+        if "password" in user_data and user_data["password"] == password:
+            # 로그인 성공 처리
+            st.session_state["user_id"] = user_data["id"]
+            session_id = start_session_with_log(user_data["id"])
+
+            # 화면 갱신
+            st.rerun()
+        else:
+            st.error("잘못된 비밀번호입니다.")
+    else:
+        st.error("존재하지 않는 아이디입니다.")
+
+# 세션 시작 및 활동 기록 함수
+def start_session_with_log(user_id):
+    # 고유한 세션 ID 생성
+    session_id = f"{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    # Firestore 참조
+    logs_ref = db.collection("users").document(user_id).collection("logs").document(session_id)
+
+    # 세션 데이터 초기화
+    logs_ref.set({
+        "start_time": datetime.now(),
+        "end_time": None,  # 초기값 null
+        "activities": []   # 활동 배열 초기화
+    })
+
+    # 로그인 활동 기록 추가
+    log_activity(user_id, session_id, "Logged in")
+
+    print(f"Session {session_id} started and login activity recorded for user {user_id}.")
+    return session_id
+
+# Firestore에 데이터 저장
+def save_diary(user_id, diary_entry):
+    doc_ref = db.collection("diaries").document(user_id)
+    data = {
+        "entry": diary_entry,
+        "timestamp": datetime.datetime.now()
+    }
+    
+    # Firestore에 데이터 추가
+    diary_ref = diaries_ref.add(data)  # 문서 ID 자동 생성
+    diary_id = diary_ref[1].id
+    print(f"Diary saved with ID: {diary_id}")
+
+    # 활동 기록 추가
+    session_id = get_active_session(user_id)
+    if session_id:
+        log_activity(user_id, session_id, f"Saved diary entry with ID: {diary_id}")
+
+    st.success("Diary saved successfully!")
+
+# 활동 기록 함수
+def log_activity(user_id, session_id, activity):
+    # Firestore에서 세션 문서 참조
+    session_ref = db.collection("users").document(user_id).collection("logs").document(session_id)
+
+    # 세션 데이터 가져오기
+    session_doc = session_ref.get()
+    if session_doc.exists:
+        activities = session_doc.to_dict().get("activities", [])
+        
+        # 활동 추가
+        activities.append({
+            "activity": activity,
+            "timestamp": datetime.now()
+        })
+        session_ref.update({"activities": activities})
+        print(f"Activity '{activity}' logged for session {session_id}.")
+    else:
+        print(f"Session {session_id} does not exist for user {user_id}.")
+
+# OpenAI API Key 설정
+def initialize_openai_api():
+    openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
+initialize_openai_api()
+
+## -------------------------------------------------------------------------------------------------
+## Not logged in -----------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------
+# Firebase 기반 로그인 UI
+if "user_id" not in st.session_state:
+    st.title("일기 작성하러 가기")
+    user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
+    password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
+    if st.button("Login", use_container_width=True):
+        login(user_id, password)
+## -------------------------------------------------------------------------------------------------
+## Logged in --------------------------------------------------------------------------------------
+## -------------------------------------------------------------------------------------------------
 else:
-    # OpenAI API 키 설정
-    openai.api_key = st.session_state.api_key  # 세션 상태에서 API 키 가져오기
+    # 로그인 성공 안내 메시지
+    st.toast(f"{st.session_state['user_id']}님, 환영합니다!", icon=":material/check:")
 
     # API 클라이언트 초기화
     @st.cache_resource
