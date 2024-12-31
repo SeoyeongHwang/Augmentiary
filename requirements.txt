@@ -4,9 +4,7 @@ langchain_community==0.3.13
 openai==1.58.1
 pydantic==2.10.4
 pyperclip==1.9.0
-pytz==2023.3
-pytz==2024.2
-pytz==2022.7
+pytz>=2024.2
 st_copy_to_clipboard==0.1.6
 streamlit==1.40.1
 streamlit_extras==0.5.0
