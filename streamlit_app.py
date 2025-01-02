@@ -85,7 +85,7 @@ def start_session_with_log(user_id):
     # 로그인 활동 기록 추가
     log_activity(user_id, session_id, "Logged in")
 
-    print(f"Session {session_id} started and handle_login activity recorded for user {user_id}.")
+    print(f"► Session {session_id} started and handle_login activity recorded for user {user_id}.")
     return session_id
 
 def upload_initial_diary(user_id: str, diary_entry: str):
@@ -99,7 +99,7 @@ def upload_initial_diary(user_id: str, diary_entry: str):
         # 활동 로그
         log_activity(user_id, session_id, "Wrote initial diary entry")
     except Exception as e:
-        print(f"Error uploading initial diary: {e}")
+        print(f"► Error uploading initial diary: {e}")
 
 def save_diary(user_id: str, diary_entry: str):
     if diary_entry.strip():
@@ -121,7 +121,7 @@ def save_diary(user_id: str, diary_entry: str):
             log_activity(user_id, session_id, "Saved diary entry")
         except Exception as e:
             st.toast("일기를 저장하는 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.", icon=":material/error:")
-            print(f"Error saving diary: {e}")
+            print(f"► Error saving diary: {e}")
 
 def upload_working_diary(user_id: str, diary_entry: str):
     if diary_entry.strip():
@@ -142,7 +142,7 @@ def upload_working_diary(user_id: str, diary_entry: str):
             # 활동 로그
             log_activity(user_id, session_id, "Modified diary entry")
         except Exception as e:
-            print(f"Error uploading working diary: {e}")
+            print(f"► Error uploading working diary: {e}")
 
 def save_to_firebase(user_id: str, session_id: str, entry: str, entry_type: str, doc_counter: int):
     try:
@@ -182,9 +182,9 @@ def save_api_response(user_id: str, session_id: str, diary_entry: str, result: s
             'timestamp': timestamp          # 저장 시간
         })
         session_ref.update({"responses": responses})
-        print(f"API 응답 저장 완료: {session_ref.id}")
+        print(f"► API 응답 저장 완료: {session_ref.id}")
     else:
-        print(f"API 요청 및 응답 정보 저장 중 오류 발생")
+        print(f"► API 요청 및 응답 정보 저장 중 오류 발생")
 
 # 활동 기록 함수
 def log_activity(user_id, session_id, activity):
@@ -202,9 +202,9 @@ def log_activity(user_id, session_id, activity):
             "timestamp": datetime.now(kst)
         })
         session_ref.update({"activities": activities})
-        print(f"Activity '{activity}' logged for session {session_id}.")
+        print(f"► Activity '{activity}' logged for session {session_id}.")
     else:
-        print(f"Session {session_id} does not exist for user {user_id}.")
+        print(f"► Session {session_id} does not exist for user {user_id}.")
 
 # textarea 콜백 함수
 def handle_entry_interaction():
@@ -245,7 +245,7 @@ def handle_api_request(spinner_container):
 
     # 필수 데이터가 없는 경우 경고 메시지 표시
     if not all([diary_entry, life_orientation, value, tone]):
-        st.warning("일기를 입력하고 모든 옵션 선택을 완료하면 새로운 관점을 찾아드릴게요.")
+        st.toast("아직 작성된 내용이 없어요.일기를 쓰고 원하는 옵션을 선택하시면 새로운 관점을 찾아드릴게요.", icon=':material/error:')
         st.session_state["is_loading"] = False
         return
 
@@ -314,7 +314,7 @@ def handle_entry_update():
             "Applied AI-augmented diary."
         )
         st.toast("내용을 가져왔어요. 이제 내용을 자유롭게 수정하실 수 있어요.", icon=":material/check:")
-        print('►적용: \n', st.session_state.diary_entry)
+        print('► 적용: \n', st.session_state.diary_entry)
     except Exception as e:
         st.error(f"일기 업데이트 중 오류 발생: {e}")
 
@@ -326,6 +326,7 @@ def handle_diary_save():
         if diary_entry.strip():
             save_diary(user_id, diary_entry)
             st.toast("일기 한 편을 완성했어요!", icon=":material/check:")
+            st.session_state["save_success"] = True
         else:
             st.toast("아직 작성된 내용이 없어요. 먼저 일기 한 편을 써보세요.", icon=":material/error:")
     except Exception as e:
@@ -370,9 +371,9 @@ if "session_id" not in st.session_state:
 else:  
     # 로그인 성공 안내 메시지: 플래그가 활성화된 경우에만 표시
     if st.session_state.get("show_welcome_message", False):
-        st.toast(f"{st.session_state['user_id']}님, 환영해요!", icon=":material/check:")
+        st.toast(f"{st.session_state['user_id']}님, 환영해요!", icon=":material/waving_hand:")
         st.session_state["show_welcome_message"] = False  # 메시지 표시 후 플래그 비활성화
-        print("▶︎세션: "+st.session_state["session_id"])
+        print("► 세션: "+st.session_state["session_id"])
 
     # API 클라이언트 초기화
     @st.cache_resource
@@ -389,6 +390,15 @@ else:
             falling_speed=10,
             animation_length="0.5",
         )
+    
+    if st.session_state.get("save_success", False):
+        rain(
+            emoji="👍",
+            font_size=36,
+            falling_speed=10,
+            animation_length="0.5",
+        )
+        st.session_state["save_success"] = False
     
     # 요일 변환 딕셔너리
     day_translation = {
@@ -451,7 +461,7 @@ else:
         # 일기 입력 섹션
         diary_entry = st.text_area(
             "diary_entry", 
-            placeholder="오늘 있었던 일을 자유롭게 적어보세요.", 
+            placeholder="있었던 일, 생각, 감정에 대해 자유롭게 적어보세요.", 
             height=462, 
             label_visibility="collapsed",
             disabled=False,
@@ -462,7 +472,7 @@ else:
         btn1, btn2 = st.columns(2)
         with btn1:
             # 원래 처음에 입력한 일기로 돌아가기
-            st.button("원래대로", icon=":material/undo:", type='secondary', use_container_width=True, on_click=handle_load_original)
+            st.button("원래대로", icon=":material/refresh:", type='secondary', use_container_width=True, on_click=handle_load_original)
         with btn2:
             # 일기 저장하기
             st.button("저장하기", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
