@@ -452,17 +452,20 @@ else:
         diary_entry = st.text_area(
             "diary_entry", 
             placeholder="오늘 있었던 일을 자유롭게 적어보세요.", 
-            height=362, 
+            height=462, 
             label_visibility="collapsed",
             disabled=False,
             on_change=handle_entry_interaction,
             key="diary_entry",  # Textarea 값 세션 상태와 연결
         )
 
-        # 원래 처음에 입력한 일기로 돌아가기
-        st.button("원래대로", icon=":material/undo:", type='secondary', on_click=handle_load_original)
-        # 일기 저장하기
-        st.button("저장하기", icon=":material/save:", type="secondary", on_click=handle_diary_save)
+        btn1, btn2 = st.columns(2)
+        with btn1:
+            # 원래 처음에 입력한 일기로 돌아가기
+            st.button("원래대로", icon=":material/undo:", type='secondary', use_container_width=True, on_click=handle_load_original)
+        with btn2:
+            # 일기 저장하기
+            st.button("저장하기", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
 
     with col2:
         selector = st.expander("하루에 관점 더하기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
@@ -505,21 +508,22 @@ else:
         result_container = st.empty()
 
         with selector:
-            button_disabled = st.session_state.get('button_disabled', False)
+            if st.session_state.get('diary_entry', False):
+                st.session_state["button_disabled"] = False
 
             # 결과 요청 버튼
             st.button(
                 "🪄 다시 바라보기", 
                 type='secondary', 
                 use_container_width=True, 
-                disabled=button_disabled,
+                disabled=st.session_state.get("button_disabled", True),
                 on_click=handle_api_request,
                 args=(spinner_container,), # spinner_container를 인자로 전달
             )
 
         # 결과를 입력 필드에 적용하는 버튼 추가
         if st.session_state.get('show_update_entry_button', False):  # 버튼 표시 플래그 확인
-            st.button("내 일기에 담기", icon=':material/arrow_back:', type='secondary', on_click=handle_entry_update)
+            st.button("내 일기에 담기", icon=':material/north_west:', type='secondary', on_click=handle_entry_update)
 
         if st.session_state.get('show_rain'):
             rain(emoji="🍀", font_size=36, falling_speed=10, animation_length="1",)
@@ -527,7 +531,7 @@ else:
 
         # 결과가 있다면 항상 표시
         if st.session_state.analysis_result:
-            with result_container.container(height=300, border=None):
+            with result_container.container(height=400, border=None):
                 # 안내 메시지
                 with stylable_container(
                     key="description",
