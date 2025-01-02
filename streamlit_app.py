@@ -120,6 +120,7 @@ def save_diary(user_id: str, diary_entry: str):
             # 활동 로그
             log_activity(user_id, session_id, "Saved diary entry")
         except Exception as e:
+            st.toast("일기를 저장하는 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.", icon=":material/error:")
             print(f"Error saving diary: {e}")
 
 def upload_working_diary(user_id: str, diary_entry: str):
@@ -312,7 +313,7 @@ def handle_entry_update():
             st.session_state["session_id"],
             "Applied AI-augmented diary."
         )
-        st.toast('일기를 성공적으로 가져왔어요! 가져온 내용을 수정할 수 있어요.', icon=":material/check:")
+        st.toast("내용을 가져왔어요. 이제 내용을 자유롭게 수정하실 수 있어요.", icon=":material/check:")
         print('►적용: \n', st.session_state.diary_entry)
     except Exception as e:
         st.error(f"일기 업데이트 중 오류 발생: {e}")
@@ -324,16 +325,16 @@ def handle_diary_save():
         # 엔트리 저장
         if diary_entry.strip():
             save_diary(user_id, diary_entry)
-            st.toast("일기 한 편을 완성했습니다!", icon=":material/check:")
+            st.toast("일기 한 편을 완성했어요!", icon=":material/check:")
         else:
-            st.warning("일기가 비어 있습니다. 내용을 입력해 주세요.")
+            st.toast("아직 작성된 내용이 없어요. 먼저 일기 한 편을 써보세요.", icon=":material/error:")
     except Exception as e:
         st.error(f"일기 저장 중 오류 발생: {e}")
 
 # 원래대로 버튼 핸들
 def handle_load_original():
     if "initial_entry" not in st.session_state:
-        st.toast("아직 작성한 일기가 없습니다. 먼저 일기를 작성해주세요!", icon=":material/error:")
+        st.toast("아직 작성된 내용이 없어요. 먼저 일기 한 편을 써보세요.", icon=":material/error:")
     else:
         user_id = st.session_state.get('user_id')
         session_id = st.session_state.get('session_id')
@@ -345,7 +346,7 @@ def handle_load_original():
         log_activity(user_id, session_id, "Went back to the original diary")
 
         # 알림
-        st.toast("처음 작성한 일기로 복원되었습니다!", icon=":material/check:")
+        st.toast("처음 작성한 일기로 복원됐어요.", icon=":material/check:")
 
 # OpenAI API Key 설정
 def initialize_openai_api():
@@ -369,7 +370,7 @@ if "session_id" not in st.session_state:
 else:  
     # 로그인 성공 안내 메시지: 플래그가 활성화된 경우에만 표시
     if st.session_state.get("show_welcome_message", False):
-        st.toast(f"{st.session_state['user_id']}님, 환영합니다!", icon=":material/check:")
+        st.toast(f"{st.session_state['user_id']}님, 환영해요!", icon=":material/check:")
         st.session_state["show_welcome_message"] = False  # 메시지 표시 후 플래그 비활성화
         print("▶︎세션: "+st.session_state["session_id"])
 
