@@ -68,12 +68,18 @@ def start_session_with_log(user_id):
 
     # Firestore 참조
     logs_ref = db.collection("users").document(user_id).collection("logs").document(session_id)
+    api_responses_ref = db.collection("users").document(user_id).collection("api_responses").document(session_id)
 
-    # 세션 데이터 초기화
+    # 세션 logs 초기화
     logs_ref.set({
         "start_time": datetime.now(kst),
         "end_time": None,  # 초기값 null
         "activities": []   # 활동 배열 초기화
+    })
+
+    # 세션 api_responses 초기화
+    api_responses_ref.set({
+        "responses": []  # 빈 배열로 초기화
     })
 
     # 로그인 활동 기록 추가
@@ -152,6 +158,33 @@ def save_to_firebase(user_id: str, session_id: str, entry: str, entry_type: str,
     except Exception as e:
         st.error(f"Firebase 저장 중 오류 발생: {e}")
 
+
+# API 요청 및 응답 정보 저장
+def save_api_response(user_id: str, session_id: str, diary_entry: str, result: str, life_orientation: str, value: str, tone: str, doc_counter: int):
+    # 현재 시간 기록
+    timestamp = datetime.now(kst).isoformat()
+
+    # Firestore 컬렉션 참조
+    session_ref = db.collection("users").document(user_id).collection("api_responses").document(session_id)
+
+    session_doc = session_ref.get()
+    if session_doc.exists:
+        responses = session_doc.to_dict().get("responses", [])
+
+        # 데이터 저장
+        responses.append({
+            'life_orientation': life_orientation,  # 사용자가 선택한 삶의 태도
+            'value': value,                 # 선택된 가치
+            'tone': tone,                   # 선택된 어조
+            'input_entry': diary_entry,     # 입력으로 사용된 일기
+            'result': result,               # AI 일기 생성 결과
+            'timestamp': timestamp          # 저장 시간
+        })
+        session_ref.update({"responses": responses})
+        print(f"API 응답 저장 완료: {session_ref.id}")
+    else:
+        print(f"API 요청 및 응답 정보 저장 중 오류 발생")
+
 # 활동 기록 함수
 def log_activity(user_id, session_id, activity):
     # Firestore에서 세션 문서 참조
@@ -199,20 +232,64 @@ def handle_entry_interaction():
         st.error(f"Textarea 상호작용 처리 중 오류 발생: {e}")
 
 # API 요청 콜백 함수
-def handle_api_request():
+def handle_api_request(spinner_container):
     # expander 닫기
     st.session_state.expander_state = False
+
+    # 필수 데이터 확인
+    diary_entry = st.session_state.get("diary_entry")
+    life_orientation = st.session_state.get("life_orientation")
+    value = st.session_state.get("value")
+    tone = st.session_state.get("tone")
+
+    # 필수 데이터가 없는 경우 경고 메시지 표시
+    if not all([diary_entry, life_orientation, value, tone]):
+        st.warning("일기를 입력하고 모든 옵션 선택을 완료하면 새로운 관점을 찾아드릴게요.")
+        st.session_state["is_loading"] = False
+        return
 
     user_id = st.session_state.get("user_id")
     session_id = st.session_state.get("session_id")
 
     # 첫 요청인 경우 처음 일기 엔트리 저장
     if 'initial_entry' not in st.session_state:
-        st.session_state['initial_entry'] = st.session_state['diary_entry']
-        upload_initial_diary(user_id, st.session_state['initial_entry'])
+        st.session_state['initial_entry'] = diary_entry
+        upload_initial_diary(user_id, diary_entry)
     
-    # 활동 로그
+    # 활동 로그 기록
     log_activity(user_id, session_id, "Requested AI response")
+
+    # API 호출 및 결과 저장
+    with spinner_container.container():
+        with st.spinner("일기를 읽고 있어요. 잠시만 기다려 주세요..."):
+            try:
+                result = analyzer.augment_diary(
+                    diary_entry=diary_entry,
+                    life_orientation=life_orientation,
+                    value=value,
+                    tone=tone,
+                    method="langchain"
+                )
+                # 결과를 세션 상태에 저장
+                st.session_state["analysis_result"] = result
+                st.session_state["result_life_orientation"] = life_orientation
+                st.session_state["result_value"] = value
+                st.session_state["result_tone"] = tone
+                st.session_state["show_update_entry_button"] = True
+                st.session_state['show_rain'] = True
+
+                # 도큐먼트 카운터 기본값 설정
+                if "response_counter" not in st.session_state:
+                    st.session_state["response_counter"] = 1
+                else:
+                    st.session_state["response_counter"] += 1
+                doc_counter = st.session_state["response_counter"]
+
+                # Firestore에 API 결과와 선택 옵션 저장
+                save_api_response(user_id, session_id, diary_entry, result, life_orientation, value, tone, doc_counter)
+
+            except Exception as e:
+                st.error(f"API 요청 중 오류 발생: {e}")
 
 # 탭 확장 여부 함수
 def toggle_expander_state():
@@ -235,11 +312,10 @@ def handle_entry_update():
             st.session_state["session_id"],
             "Applied AI-augmented diary."
         )
+        st.toast('일기를 성공적으로 가져왔어요! 가져온 내용을 수정할 수 있어요.', icon=":material/check:")
         print('►적용: \n', st.session_state.diary_entry)
     except Exception as e:
         st.error(f"일기 업데이트 중 오류 발생: {e}")
-
-# api 결과
 
 # 저장하기 버튼 핸들
 def handle_diary_save():
@@ -331,7 +407,7 @@ else:
 
     # 타이틀
     st.markdown(
-        f"<h2 style='text-align: center; padding: 0;'>{current_date.strftime('%m월 %d일')} {translated_day},</h2><h2 style='text-align: center; padding: 0; margin-bottom: 40px'>오늘</h2>",
+        f"<h2 style='text-align: left; padding: 0; margin-bottom: 40px;'>{current_date.strftime('%m월 %d일')} {translated_day}</h2>", 
         unsafe_allow_html=True
     )
 
@@ -388,7 +464,7 @@ else:
         st.button("저장하기", icon=":material/save:", type="secondary", on_click=handle_diary_save)
 
     with col2:
-        selector = st.expander("하루에 관점 더하기", icon="🔮", expanded=st.session_state.expander_state)  # 세션 상태 사용
+        selector = st.expander("하루에 관점 더하기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
         selector.text("오늘을 바라보고픈 태도는")
         life_orientation = selector.pills(
@@ -396,7 +472,9 @@ else:
             options=life_orientation_map.keys(), 
             format_func=lambda option: life_orientation_map[option], 
             label_visibility="collapsed"
-        )
+        ) or None
+        if life_orientation:
+            st.session_state["life_orientation"] = life_orientation
         # 옵션 선택 섹션 - value
         selector.text("나에게 소중한 가치는")
         value = selector.pills(
@@ -404,103 +482,74 @@ else:
             options=value_map.keys(), 
             format_func=lambda option: value_map[option], 
             label_visibility="collapsed"
-        )
+        ) or None
+        if value:
+            st.session_state["value"] = value
         # 옵션 선택 세션 - tone
         selector.text("나에게 편한 분위기는")
         tone = selector.pills(
             "언어 선택", 
             options=tone_map.keys(), 
             format_func=lambda option: tone_map[option], 
-            label_visibility="collapsed")
+            label_visibility="collapsed"
+        ) or None
+        if tone:
+            st.session_state["tone"] = tone
 
         if 'analysis_result' not in st.session_state:
             st.session_state.analysis_result = None
         
-        # 결과를 표시할 컨테이너
+        # 스피너 및 결과 컨테이너
+        spinner_container = st.empty()
         result_container = st.empty()
 
         with selector:
             button_disabled = st.session_state.get('button_disabled', False)
-            if selector.button("🪄 다시 바라보기", type='secondary', use_container_width=True, disabled=button_disabled, on_click=handle_api_request):
-                if not life_orientation or not value or not tone or not diary_entry.strip():
-                    st.warning("일기를 입력하고 모든 옵션 선택을 완료하면 새로운 관점을 찾아드릴게요.")
-                else:
-                    try:
-                        st.session_state.rerun_needed = True  # 새로 고침 필요 플래그 설정
-                        st.toast("일기에 새로운 관점을 추가하고 있어요!", icon=":material/flare:")  # 사용자에게 알림
 
-                        with result_container:
-                            with st.spinner("잠시만 기다려주세요..."):
-                                result = analyzer.augment_diary(
-                                    diary_entry=diary_entry,
-                                    life_orientation=life_orientation,
-                                    value=value,
-                                    tone=tone,
-                                    method="langchain"
-                                )
-
-                                # 결과를 session_state에 저장
-                                st.session_state.analysis_result = result
-                                st.session_state.life_orientation = life_orientation  # 마지막 선택한 orientation 저장
-                                st.session_state.value = value
-                                st.session_state.tone = tone
-                                st.session_state.show_result_rain = True  # rain 효과를 표시하기 위해 True로 설정
-                                
-                                # "내 일기에 담기" 버튼을 API 호출 후에만 표시
-                                st.session_state.show_update_entry_button = True  # 버튼 표시 설정
-
-                                # 페이지 새로 고침 필요 여부 확인
-                                if st.session_state.get('rerun_needed', False):
-                                    st.session_state.rerun_needed = False  # 플래그 초기화
-                                    st.rerun()  # 페이지 새로 고침
-
-                    except Exception as e:
-                        st.error(f"오류 발생: {e}")
+            # 결과 요청 버튼
+            st.button(
+                "🪄 다시 바라보기", 
+                type='secondary', 
+                use_container_width=True, 
+                disabled=button_disabled,
+                on_click=handle_api_request,
+                args=(spinner_container,), # spinner_container를 인자로 전달
+            )
 
         # 결과를 입력 필드에 적용하는 버튼 추가
         if st.session_state.get('show_update_entry_button', False):  # 버튼 표시 플래그 확인
-            st.button("✍️ 내 일기에 담기", type='secondary', on_click=handle_entry_update)
+            st.button("내 일기에 담기", icon=':material/arrow_back:', type='secondary', on_click=handle_entry_update)
 
-    if st.session_state.get('entry_update_notice', False):
-        st.session_state.entry_update_notice = False
-        st.toast('일기를 성공적으로 가져왔어요! 가져온 내용을 수정할 수 있어요.', icon=":material/check:")
+        if st.session_state.get('show_rain'):
+            rain(emoji="🍀", font_size=36, falling_speed=10, animation_length="1",)
+            st.session_state.show_rain = False
 
-    # rain 효과 표시 (session_state에 저장된 상태에 따라)
-    if st.session_state.get('show_result_rain', False):
-        st.session_state.show_result_rain = False
-        rain(
-            emoji="🍀",
-            font_size=36,
-            falling_speed=10,
-            animation_length="1",
-        )
-
-    # 결과가 있다면 항상 표시
-    if st.session_state.analysis_result:
-        with result_container.container(height=300, border=None):
-            # 안내 메시지
-            with stylable_container(
-                key="description",
-                css_styles="""
-                {
-                    border-radius: 4px;
-                    padding: 10px 10px 10px 12px;
-                    text-align: left;
-                    white-space: normal;
-                    word-wrap: keep-all;
-                    background-color: rgba(155, 89, 182, 0.2);
-                    line-height: 1.0;
-                } 
-                """
-            ):
-                description = st.container()
-                description.markdown(f":violet[**{life_orientation_map[st.session_state.life_orientation]}** 시선을 담아 오늘을 이렇게 볼 수도 있어요.]")
-            # 선택된 태그
-            with st.container():
-                tags = st.container()
-                tags.markdown(f":violet[_#{life_orientation_map[st.session_state.life_orientation]}  #{value_map[st.session_state.value]}  #{tone_map[st.session_state.tone]}_]")
-            # 결과
-            container = st.container()
-            container.write(st.session_state.analysis_result)
+        # 결과가 있다면 항상 표시
+        if st.session_state.analysis_result:
+            with result_container.container(height=300, border=None):
+                # 안내 메시지
+                with stylable_container(
+                    key="description",
+                    css_styles="""
+                    {
+                        border-radius: 4px;
+                        padding: 10px 10px 10px 12px;
+                        text-align: left;
+                        white-space: normal;
+                        word-wrap: keep-all;
+                        background-color: rgba(155, 89, 182, 0.2);
+                        line-height: 1.0;
+                    } 
+                    """
+                ):
+                    description = st.container()
+                    description.markdown(f":violet[**{life_orientation_map[st.session_state.result_life_orientation]}** 시선을 담아 오늘을 이렇게 볼 수도 있어요.]")
+                # 선택된 태그
+                with st.container():
+                    tags = st.container()
+                    tags.markdown(f":violet[_#{life_orientation_map[st.session_state.result_life_orientation]}  #{value_map[st.session_state.result_value]}  #{tone_map[st.session_state.result_tone]}_]")
+                # 결과
+                container = st.container()
+                container.write(st.session_state.analysis_result)
 
     
