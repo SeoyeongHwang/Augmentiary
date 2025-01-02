@@ -47,12 +47,12 @@ def handle_login(user_id, password):
     # 사용자 문서가 존재하는지 확인
     if user_doc.exists:
         user_data = user_doc.to_dict()
-        print(user_data)
         # 비밀번호 검증
         if "password" in user_data and user_data["password"] == password:
             # 로그인 성공 처리
             st.session_state["user_id"] = user_data["id"]
-            session_id = start_session_with_log(user_data["id"])
+            st.session_state["session_id"] = start_session_with_log(user_data["id"])
+            st.session_state["show_welcome_message"] = True  # 로그인 성공 플래그 추가
 
             # 화면 갱신
             st.rerun()
@@ -84,13 +84,11 @@ def start_session_with_log(user_id):
 
 def upload_initial_diary(user_id: str, diary_entry: str):
     try:
-        doc_counter = st.session_state["initial_counter"]
-
         # 세션 ID 가져오기
         session_id = st.session_state.get("session_id")
 
         # 저장
-        save_to_firebase(user_id, session_id, diary_entry, "initial_diaries", doc_counter)
+        save_to_firebase(user_id, session_id, diary_entry, "initial_diaries", 1)
 
         # 활동 로그
         log_activity(user_id, session_id, "Wrote initial diary entry")
@@ -196,7 +194,7 @@ def handle_entry_interaction():
         else:
             # 일기 업데이트
             st.session_state["diary_entry"] = diary_entry
-            log_activity(user_id, session_id, "Updated diary entry")
+            log_activity(user_id, session_id, "Modified diary entry")
     except Exception as e:
         st.error(f"Textarea 상호작용 처리 중 오류 발생: {e}")
 
@@ -282,7 +280,7 @@ initialize_openai_api()
 ## Not logged in -----------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
 # Firebase 기반 로그인 UI. 로그인 성공 시 세션에 user_id와 session_id 저장
-if "user_id" not in st.session_state:
+if "session_id" not in st.session_state:
     st.title("일기 작성하러 가기")
     user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
     password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
@@ -292,14 +290,12 @@ if "user_id" not in st.session_state:
 ## -------------------------------------------------------------------------------------------------
 ## Logged in --------------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
-else:
-    # 로그인 성공 시 세션 ID 설정
-    if "session_id" not in st.session_state:
-        st.session_state["session_id"] = start_session_with_log(st.session_state["user_id"])
-        print("▶︎세션: "+st.session_state["session_id"])
-        
-        # 로그인 성공 안내 메시지
+else:  
+    # 로그인 성공 안내 메시지: 플래그가 활성화된 경우에만 표시
+    if st.session_state.get("show_welcome_message", False):
         st.toast(f"{st.session_state['user_id']}님, 환영합니다!", icon=":material/check:")
+        st.session_state["show_welcome_message"] = False  # 메시지 표시 후 플래그 비활성화
+        print("▶︎세션: "+st.session_state["session_id"])
 
     # API 클라이언트 초기화
     @st.cache_resource
