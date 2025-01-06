@@ -361,12 +361,14 @@ def initialize_openai_api():
 ## -------------------------------------------------------------------------------------------------
 # Firebase 기반 로그인 UI. 로그인 성공 시 세션에 user_id와 session_id 저장
 if "session_id" not in st.session_state:
-    st.title("일기 작성하러 가기")
-    user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
-    password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
+    c1, c2, c3 = st.columns([0.25, 0.5, 0.25], vertical_alignment="top")
+    with c2:
+        st.title("일기 작성하러 가기")
+        user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
+        password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
 
-    if st.button("Login", use_container_width=True):
-        handle_login(user_id, password)
+        if st.button("Login", use_container_width=True):
+            handle_login(user_id, password)
 ## -------------------------------------------------------------------------------------------------
 ## Logged in --------------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
