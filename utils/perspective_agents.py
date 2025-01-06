@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
-from langchain_community.chat_models import ChatAnthropic
+from langchain_anthropic import ChatAnthropic
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import Dict, List
@@ -108,19 +108,23 @@ class PerspectiveAgent:
             temperature=1.0,
             openai_api_key=api_key_gpt
         )
+        """
         self.claude = ChatAnthropic(
             model="claude-3-5-haiku-20241022",
             temperature=1.0,
-            count_tokens=10000,
-            anthropic_api_key=api_key_claude
+            max_tokens=10000,
+            timeout=None,
+            max_retries=2,
+            api_key=api_key_claude
         )
+        """
         self.discover_parser = PydanticOutputParser(pydantic_object=DiscoveredResults)
         self.augment_parser = PydanticOutputParser(pydantic_object=AugmentResult)
     
     
     def _load_life_orientations(self) -> Dict:
         """life_orientations.json 파일에서 관점 정의를 로딩"""
-        json_path = Path(__file__).parent.parent / 'config' / 'life_orientations.json'
+        json_path = Path(__file__).parent.parent / 'config' / 'perspectives.json'
         with open(json_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     
@@ -130,7 +134,7 @@ class PerspectiveAgent:
     
     def _create_augment_chain(self):
         """검토를 마친 포인트를 적용하여 일기 증강"""
-        return augment_template | self.claude | self.augment_parser
+        return augment_template | self.gpt | self.augment_parser
     
     def augment_from_perspective(self, diary_entry: str, life_orientation: str) -> str:
         """주어진 관점에서 일기를 분석하고 증강"""
@@ -181,7 +185,7 @@ class PerspectiveAgent:
         """특정 관점의 설명을 반환"""
         if life_orientation not in self.life_orientations:
             raise ValueError(f"정의되지 않은 관점입니다: {life_orientation}")
-        return self.life_orientations[life_orientation]['definition']
+        return self.life_orientations[life_orientation]['explanation']
 
     def get_life_orientation_highlights(self, life_orientation: str) -> str:
         """특정 관점의 강조 사항을 반환"""

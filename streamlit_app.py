@@ -427,7 +427,7 @@ else:
 
     life_orientation_map = {
         "future-oriented":"미래지향적", 
-        "realistic":"현실적", 
+        "realisty-based":"현실적", 
         "optimistic":"낙관적", 
         "growth-oriented":"성장주의적", 
         "accepting":"수용적"
