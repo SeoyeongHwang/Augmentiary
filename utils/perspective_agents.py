@@ -1,5 +1,6 @@
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatAnthropic
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import Dict, List
@@ -100,12 +101,18 @@ augment_template = PromptTemplate(
 
 
 class PerspectiveAgent:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key_gpt: str, api_key_claude: str):
         self.life_orientations = self._load_life_orientations()
-        self.llm = ChatOpenAI(
+        self.gpt = ChatOpenAI(
             model_name="gpt-4o-mini",
             temperature=1.0,
-            openai_api_key=api_key
+            openai_api_key=api_key_gpt
+        )
+        self.claude = ChatAnthropic(
+            model="claude-3-5-haiku-20241022",
+            temperature=1.0,
+            count_tokens=10000,
+            anthropic_api_key=api_key_claude
         )
         self.discover_parser = PydanticOutputParser(pydantic_object=DiscoveredResults)
         self.augment_parser = PydanticOutputParser(pydantic_object=AugmentResult)
@@ -119,11 +126,11 @@ class PerspectiveAgent:
     
     def _create_discover_chain(self):
         """주어진 관점에서 다시 바라볼 포인트를 발견하는 체인 생성"""
-        return discover_template | self.llm | self.discover_parser
+        return discover_template | self.gpt | self.discover_parser
     
     def _create_augment_chain(self):
         """검토를 마친 포인트를 적용하여 일기 증강"""
-        return augment_template | self.llm | self.augment_parser
+        return augment_template | self.claude | self.augment_parser
     
     def augment_from_perspective(self, diary_entry: str, life_orientation: str) -> str:
         """주어진 관점에서 일기를 분석하고 증강"""

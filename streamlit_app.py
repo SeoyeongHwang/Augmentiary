@@ -1,7 +1,8 @@
 import streamlit as st
 import openai  # OpenAI API 사용
+import anthropic
 import firebase_admin
-from firebase_admin import credentials, auth, firestore
+from firebase_admin import credentials, firestore
 from streamlit_extras.let_it_rain import rain
 from streamlit_extras.stylable_container import stylable_container
 from utils.api_client import DiaryAnalyzer
@@ -351,8 +352,9 @@ def handle_load_original():
 
 # OpenAI API Key 설정
 def initialize_openai_api():
-    openai.api_key = st.secrets["general"]["OPENAI_API_KEY"]
-initialize_openai_api()
+    api_key_gpt = st.secrets["general"]["OPENAI_API_KEY"]
+    api_key_claude = st.secrets["general"]["ANTHROPIC_API_KEY"]
+    return api_key_gpt, api_key_claude
 
 ## -------------------------------------------------------------------------------------------------
 ## Not logged in -----------------------------------------------------------------------------------
@@ -378,7 +380,8 @@ else:
     # API 클라이언트 초기화
     @st.cache_resource
     def get_analyzer():
-        return DiaryAnalyzer(openai.api_key)  # 설정된 API 키 사용
+        api_key_gpt, api_key_claude = initialize_openai_api()  # Retrieve the API keys
+        return DiaryAnalyzer(api_key_gpt, api_key_claude)  # 설정된 API 키 사용
 
     analyzer = get_analyzer()
 

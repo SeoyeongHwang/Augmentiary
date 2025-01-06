@@ -5,11 +5,13 @@ from .perspective_manager import PerspectiveManager
 from .perspective_agents import PerspectiveAgent
 
 class DiaryAnalyzer:
-    def __init__(self, api_key):
-        self.client = openai.OpenAI(api_key=api_key)
-        self.tone_manager = ToneManager(api_key=api_key)  # ToneManager 인스턴스 생성
-        self.perspective_manager = PerspectiveManager(api_key=api_key)
-        self.perspective_agent = PerspectiveAgent(api_key=api_key)
+    def __init__(self, api_key_gpt, api_key_claude):
+        self.api_key_gpt = api_key_gpt
+        self.api_key_claude = api_key_claude
+        self.client = openai.OpenAI(api_key=api_key_gpt)
+        self.tone_manager = ToneManager(api_key=api_key_gpt)  # ToneManager 인스턴스 생성
+        self.perspective_manager = PerspectiveManager(api_key=api_key_gpt)
+        self.perspective_agent = PerspectiveAgent(api_key_gpt=api_key_gpt, api_key_claude=api_key_claude)
     
     def augment_with_openai(self, diary_entry, life_orientation, value, tone):
         """일기를 분석하고 결과를 반환하는 메서드"""
