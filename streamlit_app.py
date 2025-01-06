@@ -269,7 +269,7 @@ def handle_api_request(spinner_container):
                     life_orientation=life_orientation,
                     value=value,
                     tone=tone,
-                    method="langchain"
+                    method="perspective"
                 )
                 # 결과를 세션 상태에 저장
                 st.session_state["analysis_result"] = result

@@ -8,89 +8,90 @@ from pathlib import Path
 
 # 추출 결과 모델 정의
 class DiscoveringSteps(BaseModel):
-    point: str = Field(description="A positive or grateful point.")
-    quotes: str = Field(description="A sentence from the original diary entry that reveals a positive or grateful life_orientation.")
-    reason: str = Field(description="A reason why this is something to be positive or grateful, including the life_orientation used.")
+    quotes: str = Field(description="An excerpt from the original diary.")
+    new_perspective: str = Field(description="An interpretation from a given perspective, including reasons and justifications.")
 class DiscoveredResults(BaseModel):
-    points: list[DiscoveringSteps] = Field(description="List of extracted positives or things to be grateful for")
-# 판정 결과 모델 정의
-class JudgmentResult(BaseModel):
-    point: DiscoveringSteps
-    is_relevant: bool = Field(description="Whether the point aligns with the given life_orientation.")
-    reasoning: str = Field(description="Reason why the point is or is not relevant.")
+    points: list[DiscoveringSteps] = Field(description="List of extracted excerpts and explanations.")
 # 증강 결과 모델 정의
 class AugmentResult(BaseModel):
     diary_entry: str = Field(description="증강된 일기 내용")
 
 
-# 프롬프트 템플릿 정의
-extract_template = PromptTemplate(
-    input_variables=["entry", "life_orientation"],
-    template=(
-        """
-        당신은 {life_orientation}인 삶의 태도를 갖고 있는 사람입니다.
-        주어진 글을 당신의 일기라고 생각하고 읽고, 드러난 사건이나 일어난 일, 느낀 감정이나 들었던 생각 중에서 좀 더 긍정적이거나 감사하게 바라볼 수 있는 부분을 찾으세요.
-        {life_orientation}인 태도가 드러나는 부분을 찾는 것이 아니라, 미처 인지하지 못하는 하루의 좋은 점을 찾는 데에 목적이 있다는 것에 유념하세요!
 
-        Diary Entry:
-        {diary_entry}
-
-        Extract points following these criteria:
-        1. 일기를 통해 알 수 있는 하루동안 있었던 일들 중에서 긍정적으로 여길 수 있거나 감사할 수 있는 부분을 찾아내세요.
-        2. 일기 항목의 특정 부분을 참조하세요.
-        3. 주어진 관점에 기반해서 왜 해당 부분을 다르게 바라볼 필요가 있는지 이유를 제공하세요.
-
-        한국어로 응답하세요.
-        {format_instructions}
-        """
-    )
-)
-
-# 두 번째 프롬프트 템플릿: 관점 판정
+# 첫 번째 프롬프트 템플릿: 관점 발굴
 discover_template = PromptTemplate(
     input_variables=["points", "life_orientation", "life_orientation_desc"],
     template=(
         """
-        당신은 {life_orientation}인 삶의 태도를 갖고 있습니다. 
-        구체적으로 '{life_orientation}' 삶의 태도는 다음을 의미합니다.: "{life_orientation_desc}"
+        당신은 {life_orientation} 관점을 통해 세상을 바라보며, 다른 사람들이 새로운 관점과 건설적인 통찰을 발견할 수 있도록 돕는 역할을 수행합니다. 
+        {life_orientation_desc}
+
+        사용자는 자신의 경험에 대한 일기를 작성했습니다. 
+        사용자는 자신의 일기에 {life_orientation} 관점이 덧대어진 버전을 읽어보고, 새로운 의미과 관점을 고려하고자 합니다. 
+        당신의 임무는 일기에서 {life_orientation} 태도를 바탕으로 의미의 재해석이나 인사이트가 필요한 부분을 식별하는 것입니다.
+
+        [작업 지시] 
+        1. 사용자의 일기를 읽고 다음 요소를 깊이 이해하세요:
+        - 사용자가 표현한 감정과 생각
+        - 기술된 사건의 맥락과 배경
+        - 암묵적인 고민, 욕구 또는 어려움 
+        2. 이러한 이해를 바탕으로, 일기에서 {life_orientation} 관점으로 재해석할 수 있는 부분 1~3개를 식별하세요. 
+        3. 각 부분을 {life_orientation} 관점에서 어떻게 바라볼 수 있는지, 이를 통해 어떤 이점을 얻을 수 있는지에 대해 1~3문장으로 설명하세요:
+        - 원본 일기의 사실(사건, 행동, 감정, 생각)을 유지하세요.
+        - 일기에 드러난 감정과 생각을 존중하고 인정하면서도 건설적인 관점을 부드럽게 소개하세요.
+        - 사용자의 고유한 상황을 반영하여 재해석이 적절하고 공감적으로 느껴져야 합니다.
+
+        [결과]
+        1. 사용자에 대한 이해 
+        2. 식별 결과
+            - 일기의 관련 부분 발췌
+            - 관점에 근거한 재해석: {life_orientation} 관점에서 해석을 제공하며, 이유와 정당성을 포함.
         
-        {life_orientation} 관점에서 사용자의 하루를 좀 더 긍정적이거나 감사한 관점에서 볼 수 있는 포인트를 찾아냈습니다.
-        당신이 보기에 발견된 포인트가 이 '{life_orientation}' 관점 기반인지 평가하세요.
-        사용자가 거부감을 느낄 수 있으니, 실제로 하루에 일어난 일에 비해 너무 지나친 해석이지는 않은지 주의하여 살펴보세요.
+        [일기]
+        ```
+        {diary_entry}
+        ```
 
-        평가할 포인트:
-        {point_json}
 
-        이 긍정적/감사한 점이 '{life_orientation}' 관점과 관련이 있고 적절한지 판단하고 그 이유를 설명하세요.
-
-        한국어로 응답하세요.
         {format_instructions}
         """
     )
 )
 
-# 세 번째 프롬프트 템플릿: 내용 증강
+# 두 번째 프롬프트 템플릿: 내용 증강
 augment_template = PromptTemplate(
-    input_variables=["diary_entry", "life_orientation", "relevant_points"],
+    input_variables=["diary_entry", "life_orientation", "highlight", "relevant_points"],
     template=(
         """
-        당신은 글쓰기 전문가입니다. 
-        사용자가 작성한 일기에서 {life_orientation} 관점에서 하루를 좀 더 긍정적이거나 감사한 관점에서 볼 수 있는 포인트를 발견했습니다.
-        일기 작성자가 {life_orientation} 관점에서 자신의 하루의 좋은 측면을 더 생각할 수 있도록, 발견된 포인트를 바탕으로 일기 내용을 증강해 주세요.
+        이 일기의 작성자라고 상상해 보십시오. 당신의 역할은 {life_orientation}인 성찰, 생각, 가능성을 원래 일기에 자연스럽게 통합하면서도 일기의 고유한 문체와 어조를 유지하는 것입니다. 
+        최종적으로 완성된 일기는 마치 처음부터 작성자가 직접 쓴 것처럼 읽혀야 하며, 원본에 드러나지 않았던 미묘하면서도 새로운 의미와 관점을 포함해야 합니다.
 
-        원본 일기:
+        [작업 지시]
+        1. 원본 일기 스타일 분석:
+        - 어휘와 단어 선택을 검토하십시오.
+        - 문장의 길이와 구조를 파악하십시오.
+        - 전반적인 어조를 파악하십시오.
+
+        2. 제공된 설명에서 영감을 받아 {life_orientation}인 태도로 의미를 해석하고 덧붙이기:
+        - 원본 일기의 사실(사건, 행동, 감정)을 유지하세요. 
+        - 어조와 흐름을 존중하며 새로운 의미와 재해석을 작성하세요.
+        - 발췌된 원본 글을 참고하여, 자연스러운 위치에 확장을 통합하세요.
+
+        3. 추가된 내용이 충족해야 할 조건:
+        - {life_orientation}인 관점과 일치하며, {highlight}를 강조해야 합니다.
+        - 원본 텍스트와 비교하여 간결하고 비례적으로 작성하여 원본 글을 압도하지 않아야 합니다.
+        - 흐름과 감정적 연속성을 해치지 않도록 자연스러워야 합니다.
+
+        [입력]
+        1. 원본 일기:
+        ```
         {diary_entry}
-
-        발견된 의미있는 부분들:
+        ```
+        2. 관련 일기 발췌 및 관점:
+        ```
         {relevant_points}
+        ```
 
-        다음 기준으로 일기를 증강해주세요:
-        1. 의미있는 관점들을 원본 일기에 최대한 자연스럽게 적용할 것.
-        2. 없는 사실을 지어내지 말 것.
-        3. 내용의 증강은 발견된 긍정적/감사할 포인트의 '이유'를 참고할 것.
-        4. '긍정적', '감사한'과 같은 직접적인 표현은 전반적인 글의 내용에 비해 너무 과하지 않을 때만 사용할 것.
-
-        한국어로 응답하세요.
         {format_instructions}
         """
     )
@@ -98,47 +99,43 @@ augment_template = PromptTemplate(
 
 
 
-class PerspectiveManager:
+class PerspectiveAgent:
     def __init__(self, api_key: str):
         self.life_orientations = self._load_life_orientations()
         self.llm = ChatOpenAI(
             model_name="gpt-4o-mini",
-            temperature=0.7,
+            temperature=1.0,
             openai_api_key=api_key
         )
-        self.extract_parser = PydanticOutputParser(pydantic_object=DiscoveredResults)
-        self.discover_parser = PydanticOutputParser(pydantic_object=JudgmentResult)
+        self.discover_parser = PydanticOutputParser(pydantic_object=DiscoveredResults)
         self.augment_parser = PydanticOutputParser(pydantic_object=AugmentResult)
     
     
     def _load_life_orientations(self) -> Dict:
-        """life_orientations.json 파일에서 관점 정의를 로"""
+        """life_orientations.json 파일에서 관점 정의를 로딩"""
         json_path = Path(__file__).parent.parent / 'config' / 'life_orientations.json'
         with open(json_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     
-    def _create_extract_chain(self):
-        """긍정적/감사한 포인트를 발견하는 체인 생성"""
-        return extract_template | self.llm | self.extract_parser
-    
     def _create_discover_chain(self):
-        """발견된 포인트의 관련성을 판단하는 체인 생성"""
+        """주어진 관점에서 다시 바라볼 포인트를 발견하는 체인 생성"""
         return discover_template | self.llm | self.discover_parser
     
     def _create_augment_chain(self):
         """검토를 마친 포인트를 적용하여 일기 증강"""
         return augment_template | self.llm | self.augment_parser
     
-    def augment_from_perspective(self, diary_entry: str, life_orientation: str, value: str) -> str:
+    def augment_from_perspective(self, diary_entry: str, life_orientation: str) -> str:
         """주어진 관점에서 일기를 분석하고 증강"""
         try:
-            # 1. 긍정적/감사한 포인트 발견
-            discovery_chain = self._create_discovery_chain()
+            # 1. 주어진 관점으로 재해석할 포인트 발견
+            discovery_chain = self._create_discover_chain()
+            life_orientations_desc = self.get_life_orientation_definition(life_orientation)
             discovery_result = discovery_chain.invoke({
                 "diary_entry": diary_entry,
                 "life_orientation": life_orientation,
-                "value": value,
-                "format_instructions": self.discovery_parser.get_format_instructions()
+                "life_orientation_desc": life_orientations_desc,
+                "format_instructions": self.discover_parser.get_format_instructions()
             })
             print("Discovery Result Type:", type(discovery_result))
             print("Discovery Result Content:", discovery_result)
@@ -147,34 +144,25 @@ class PerspectiveManager:
             # points 속성을 직접 사용하면 됩니다
             extracted_points = discovery_result.points
 
-            # 2. 각 포인트에 대한 관점 기반 판단
-            judgment_chain = self._create_judgment_chain()
-            life_orientations_desc = self.get_life_orientation_definition(life_orientation)
-            
-            judgments = []
+            # 2. 주어진 관점으로 일기 증강
+            points = []
             for point in extracted_points:
-                print("\n각각: ", point.point)
-                judgment = judgment_chain.invoke({
-                    "life_orientation": life_orientation,
-                    "life_orientation_desc": life_orientations_desc,
-                    "point_json": point.model_dump_json(),
-                    "format_instructions": self.judgment_parser.get_format_instructions()
-                })
-                print("결과: ", judgment.is_relevant)
-                judgments.append(judgment)
+                print("\n- ", point)
+                points.append(point)
             
-            # 3. 관련성 있는 포인트들로 일기 증강
-            relevant_points_str = "\n".join([
-                f"- 포인트: {j.point.point}\n  이유: {j.point.reason} 원문: {j.point.quotes}" 
-                for j in judgments if j.is_relevant
+            points_str = "\n========\n".join([
+                f"- Relevant excerpts: {j.quotes}\n- Interpretation: {j.new_perspective}" 
+                for j in points
             ])
-            print("====================\n최종 선정: ", relevant_points_str)
+            print("====================\n발견된 부분: ", points_str)
             
-            augment_chain = self._augment_diary_chain()
+            augment_chain = self._create_augment_chain()
+            life_orientations_highlight = self.get_life_orientation_highlights(life_orientation)
             augmented_result = augment_chain.invoke({
                 "diary_entry": diary_entry,
-                "relevant_points": relevant_points_str,  # 문자열로 변환된 버전 사용
+                "relevant_points": points_str,  # 문자열로 변환된 버전 사용
                 "life_orientation": life_orientation,
+                "highlight": life_orientations_highlight,
                 "format_instructions": self.augment_parser.get_format_instructions()
             })
             return augmented_result.diary_entry
@@ -187,6 +175,12 @@ class PerspectiveManager:
         if life_orientation not in self.life_orientations:
             raise ValueError(f"정의되지 않은 관점입니다: {life_orientation}")
         return self.life_orientations[life_orientation]['definition']
+
+    def get_life_orientation_highlights(self, life_orientation: str) -> str:
+        """특정 관점의 강조 사항을 반환"""
+        if life_orientation not in self.life_orientations:
+            raise ValueError(f"정의되지 않은 관점입니다: {life_orientation}")
+        return self.life_orientations[life_orientation]['highlight']
     
     def get_life_orientations(self) -> List[str]:
         """모든 관점 목록 반환"""
