@@ -241,11 +241,11 @@ def handle_api_request(spinner_container):
     # 필수 데이터 확인
     diary_entry = st.session_state.get("diary_entry")
     life_orientation = st.session_state.get("life_orientation")
-    value = st.session_state.get("value")
+    #value = st.session_state.get("value")
     tone = st.session_state.get("tone")
 
     # 필수 데이터가 없는 경우 경고 메시지 표시
-    if not all([diary_entry, life_orientation, value, tone]):
+    if not all([diary_entry, life_orientation, tone]): #value 제외
         st.toast("아직 작성된 내용이 없어요.일기를 쓰고 원하는 옵션을 선택하시면 새로운 관점을 찾아드릴게요.", icon=':material/error:')
         st.session_state["is_loading"] = False
         return
@@ -265,17 +265,17 @@ def handle_api_request(spinner_container):
     with spinner_container.container():
         with st.spinner("일기를 읽고 있어요. 잠시만 기다려 주세요..."):
             try:
-                result = analyzer.augment_diary(
+                result = analyzer.augment_diary_v2(
                     diary_entry=diary_entry,
                     life_orientation=life_orientation,
-                    value=value,
+                    #value=value,
                     tone=tone,
                     method="perspective"
                 )
                 # 결과를 세션 상태에 저장
                 st.session_state["analysis_result"] = result
                 st.session_state["result_life_orientation"] = life_orientation
-                st.session_state["result_value"] = value
+                #st.session_state["result_value"] = value
                 st.session_state["result_tone"] = tone
                 st.session_state["show_update_entry_button"] = True
                 st.session_state['show_rain'] = True
@@ -288,7 +288,7 @@ def handle_api_request(spinner_container):
                 doc_counter = st.session_state["response_counter"]
 
                 # Firestore에 API 결과와 선택 옵션 저장
-                save_api_response(user_id, session_id, diary_entry, result, life_orientation, value, tone, doc_counter)
+                save_api_response(user_id, session_id, diary_entry, result, life_orientation, tone, doc_counter) #value 제외
 
             except Exception as e:
                 st.error(f"API 요청 중 오류 발생: {e}")
@@ -434,6 +434,13 @@ else:
         "growth-oriented":"성장주의적", 
         "accepting":"수용적"
     }
+    life_orientation_map_v2 = {
+        "future-oriented":"미래지향적 시각", 
+        "reality-based":"현실적 시각", 
+        "optimistic":"낙관적 시각", 
+        "growth-oriented":"성장주의적 시각", 
+        "accepting":"수용적 시각"
+    }
     value_map = {
         "balance":"균형", 
         "achievement":"성취", 
@@ -447,6 +454,13 @@ else:
         "calm": "🍵 차분한", 
         "funny": "🤡 장난스러운", 
         "emotional": "🌌 감성적인"
+    }
+    tone_map_v2 = {
+        "mine": "🤗 나의 목소리",
+        "friendly": "😁 따뜻하고 친근한 목소리", 
+        "calm": "🍵 차분한 목소리", 
+        "funny": "🤡 장난스러운 목소리", 
+        "emotional": "🌌 감성적인 목소리"
     }
 
     # "with" notation
@@ -488,28 +502,28 @@ else:
         selector.text("오늘을 바라보고픈 태도는")
         life_orientation = selector.pills(
             "삶의 태도", 
-            options=life_orientation_map.keys(), 
-            format_func=lambda option: life_orientation_map[option], 
+            options=life_orientation_map_v2.keys(), 
+            format_func=lambda option: life_orientation_map_v2[option], 
             label_visibility="collapsed"
         ) or None
         if life_orientation:
             st.session_state["life_orientation"] = life_orientation
         # 옵션 선택 섹션 - value
-        selector.text("나에게 소중한 가치는")
-        value = selector.pills(
-            "가치 선택", 
-            options=value_map.keys(), 
-            format_func=lambda option: value_map[option], 
-            label_visibility="collapsed"
-        ) or None
-        if value:
-            st.session_state["value"] = value
+        #selector.text("나에게 소중한 가치는")
+        #value = selector.pills(
+        #    "가치 선택", 
+        #    options=value_map.keys(), 
+        #    format_func=lambda option: value_map[option], 
+        #    label_visibility="collapsed"
+        #) or None
+        #if value:
+        #    st.session_state["value"] = value
         # 옵션 선택 세션 - tone
         selector.text("나에게 편한 분위기는")
         tone = selector.pills(
             "언어 선택", 
-            options=tone_map.keys(), 
-            format_func=lambda option: tone_map[option], 
+            options=tone_map_v2.keys(), 
+            format_func=lambda option: tone_map_v2[option], 
             label_visibility="collapsed"
         ) or None
         if tone:
@@ -563,11 +577,11 @@ else:
                     """
                 ):
                     description = st.container()
-                    description.markdown(f":violet[**{life_orientation_map[st.session_state.result_life_orientation]}** 시선을 담아 오늘을 이렇게 볼 수도 있어요.]")
+                    description.markdown(f":violet[**{life_orientation_map_v2[st.session_state.result_life_orientation]}** 시선을 담아 오늘을 이렇게 볼 수도 있어요.]")
                 # 선택된 태그
                 with st.container():
                     tags = st.container()
-                    tags.markdown(f":violet[_#{life_orientation_map[st.session_state.result_life_orientation]}  #{value_map[st.session_state.result_value]}  #{tone_map[st.session_state.result_tone]}_]")
+                    tags.markdown(f":violet[_#{life_orientation_map_v2[st.session_state.result_life_orientation]}  #{tone_map_v2[st.session_state.result_tone]}_]") ##{value_map[st.session_state.result_value]} 제외
                 # 결과
                 container = st.container()
                 container.write(st.session_state.analysis_result)

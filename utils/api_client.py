@@ -1,6 +1,7 @@
 import openai
 from config.message import DIARY_ANALYSIS_PROMPT
 from .tone_manager import ToneManager
+from .tone_agents import ToneAgent
 from .perspective_manager import PerspectiveManager
 from .perspective_agents import PerspectiveAgent
 
@@ -10,6 +11,7 @@ class DiaryAnalyzer:
         self.api_key_claude = api_key_claude
         self.client = openai.OpenAI(api_key=api_key_gpt)
         self.tone_manager = ToneManager(api_key=api_key_gpt)  # ToneManager 인스턴스 생성
+        self.tone_agent = ToneAgent(api_key=api_key_gpt)
         self.perspective_manager = PerspectiveManager(api_key=api_key_gpt)
         self.perspective_agent = PerspectiveAgent(api_key_gpt=api_key_gpt, api_key_claude=api_key_claude)
     
@@ -62,19 +64,20 @@ class DiaryAnalyzer:
         """LangChain 에이전트를 사용한 분석"""
         try:
             print("▶ 원본: \n", diary_entry)
-            result = self.perspective_agent.augment_from_perspective(
+            augment_result = self.perspective_agent.augment_from_perspective(
                 diary_entry=diary_entry,
                 life_orientation=life_orientation
             )
             print("▶ perspective agent 동작 완료")
             try: 
-                result = self.tone_manager.refine_with_tone(
-                    diary_entry=result, 
+                styling_result = self.tone_agent.refine_with_tone(
+                    diary_entry=augment_result,
+                    original_diary_entry=diary_entry,
                     tone=tone
                 )
                 print("▶ tone agent 동작 완료")
-                print("▶ AI 증강 결과: \n", result)
-                return result
+                print("▶ AI 증강 결과: \n", styling_result)
+                return styling_result
             except Exception as e:
                 raise Exception(f"tone agent 동작 중 오류 발생: {str(e)}")
         except Exception as e:
@@ -87,6 +90,13 @@ class DiaryAnalyzer:
         elif method == "langchain":
             return self.augment_with_langchain(diary_entry, life_orientation, value, tone)
         elif method == "perspective":
+            return self.augment_with_perspective(diary_entry, life_orientation, tone)
+        else:
+            raise ValueError(f"지원하지 않는 증강 방법입니다: {method}")
+    
+    def augment_diary_v2(self, diary_entry: str, life_orientation: str, tone: str, method: str = "perspective") -> str:
+        """통합된 증강 메서드"""
+        if method == "perspective":
             return self.augment_with_perspective(diary_entry, life_orientation, tone)
         else:
             raise ValueError(f"지원하지 않는 증강 방법입니다: {method}")
