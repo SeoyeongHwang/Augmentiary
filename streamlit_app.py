@@ -162,7 +162,7 @@ def save_to_firebase(user_id: str, session_id: str, entry: str, entry_type: str,
 
 
 # API 요청 및 응답 정보 저장
-def save_api_response(user_id: str, session_id: str, diary_entry: str, result: str, life_orientation: str, value: str, tone: str, doc_counter: int):
+def save_api_response(user_id: str, session_id: str, diary_entry: str, result: str, life_orientation: str, tone: str, doc_counter: int): #value 제외
     # 현재 시간 기록
     timestamp = datetime.now(kst).isoformat()
 
