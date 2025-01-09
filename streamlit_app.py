@@ -460,7 +460,7 @@ else:
         "friendly": "😁 따뜻하고 친근하게", 
         "calm": "🍵 고요하고 차분하게", 
         "funny": "🤡 장난스럽고 유쾌하게",
-        "emotional": "🌌 깊고 감미롭게" 
+        "emotion": "🌌 깊고 감미롭게" 
     }
 
     # "with" notation
