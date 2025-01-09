@@ -7,10 +7,10 @@ from streamlit_extras.let_it_rain import rain
 from streamlit_extras.stylable_container import stylable_container
 from utils.api_client import DiaryAnalyzer
 from datetime import datetime
-import pytz
+from zoneinfo import ZoneInfo
 
 # 한국시간 설정
-kst = pytz.timezone('Asia/Seoul')
+kst = ZoneInfo('Asia/Seoul')
 
 # 페이지 설정
 st.set_page_config(
