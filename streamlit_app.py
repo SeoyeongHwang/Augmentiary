@@ -456,11 +456,11 @@ else:
         "emotional": "🌌 감성적인"
     }
     tone_map_v2 = {
-        "my_tone": "🤗 나의 목소리",
-        "friendly": "😁 따뜻하고 친근한 목소리", 
-        "calm": "🍵 차분한 목소리", 
-        "funny": "🤡 장난스러운 목소리", 
-        "emotional": "🌌 감성적인 목소리"
+        "my_tone": "💁 익숙하게",
+        "friendly": "😁 따뜻하고 친근하게", 
+        "calm": "🍵 고요하고 차분하게", 
+        "funny": "🤡 장난스럽고 유쾌하게",
+        "emotional": "🌌 깊고 감미롭게" 
     }
 
     # "with" notation
@@ -499,7 +499,7 @@ else:
     with col2:
         selector = st.expander("조금 다르게 바라보기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
-        selector.text("어떤 마음으로 바라볼까?")
+        selector.text("이날을 어떤 시선으로 볼까?")
         life_orientation = selector.pills(
             "삶의 태도", 
             options=life_orientation_map_v2.keys(), 
@@ -519,7 +519,7 @@ else:
         #if value:
         #    st.session_state["value"] = value
         # 옵션 선택 세션 - tone
-        selector.text("나에게 편한 분위기는")
+        selector.text("어떤 느낌으로 표현할까?")
         tone = selector.pills(
             "언어 선택", 
             options=tone_map_v2.keys(), 

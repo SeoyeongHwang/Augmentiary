@@ -83,7 +83,7 @@ class ToneAgent:
 
     def _load_examples(self) -> Dict[str, List[str]]:
         """톤 예시 JSON 파일 로드"""
-        json_path = Path(__file__).parent.parent / 'config' / 'tone_examples.json'
+        json_path = Path(__file__).parent.parent / 'config' / 'tone_examples_v2.json'
         with open(json_path, 'r', encoding='utf-8') as f:
             all_examples = json.load(f)
         
