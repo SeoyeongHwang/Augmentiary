@@ -14,7 +14,7 @@ kst = ZoneInfo('Asia/Seoul')
 
 # 페이지 설정
 st.set_page_config(
-    page_title="오늘 하루 돌아보기",
+    page_title="하루를 돌아보기",
     layout="wide"  # 넓은 레이아웃 설정
 )
 
