@@ -100,14 +100,14 @@ class ToneAgent:
     
     def _create_tone_chain(self, tone: str):
         """글 톤을 다듬는 체인 생성"""
-        if tone=="mine":
+        if tone=="my_tone":
             return my_tone_template | self.llm | self.tone_parser
         else:
             return tone_template | self.llm | self.tone_parser
 
     def refine_with_tone(self, diary_entry: str, original_diary_entry: str, tone: str) -> str:
         try:
-            if tone=="mine":
+            if tone=="my_tone":
                 tone_chain = self._create_tone_chain(tone)
                 tone_result = tone_chain.invoke({
                     "diary_entry": diary_entry,

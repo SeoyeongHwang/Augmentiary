@@ -456,7 +456,7 @@ else:
         "emotional": "🌌 감성적인"
     }
     tone_map_v2 = {
-        "mine": "🤗 나의 목소리",
+        "my_tone": "🤗 나의 목소리",
         "friendly": "😁 따뜻하고 친근한 목소리", 
         "calm": "🍵 차분한 목소리", 
         "funny": "🤡 장난스러운 목소리", 
