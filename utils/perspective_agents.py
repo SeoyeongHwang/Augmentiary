@@ -110,10 +110,9 @@ augment_template = PromptTemplate(
         최종적으로 완성된 일기는 마치 처음부터 작성자가 직접 쓴 것처럼 읽혀야 하며, 원본에 드러나지 않았던 미묘하면서도 새로운 의미와 관점을 포함해야 합니다.
 
         [작업 지시]
-        1. 원본 일기 스타일 분석:
-        - 어휘와 단어 선택을 검토하십시오.
-        - 문장의 길이와 구조를 파악하십시오.
-        - 전반적인 어조를 파악하십시오.
+        1. 일기 원본의 글 스타일 유지하기:
+        - 사용되는 표현, 전반적인 문체
+        - 문장의 길이와 구조
 
         2. 제공된 설명에서 영감을 받아 {life_orientation}인 태도로 의미를 해석하고 덧붙이기:
         - 원본 일기의 사실(사건, 행동, 감정)을 유지하세요. 
@@ -130,7 +129,7 @@ augment_template = PromptTemplate(
         ```
         {diary_entry}
         ```
-        2. 관련 일기 발췌 및 관점:
+        2. 관련 발췌 및 관점:
         ```
         {relevant_points}
         ```
@@ -139,7 +138,35 @@ augment_template = PromptTemplate(
         """
     )
 )
+augment_template_v2 = PromptTemplate(
+    input_variables=["diary_entry", "life_orientation", "highlight", "relevant_points"],
+    template=(
+        """
+        당신은 이 일기의 작성자가 되어, {life_orientation}적인 관점과 인사이트를 원본 일기에 자연스럽게 통합하는 역할을 합니다. 최종적으로 완성된 일기는 마치 처음부터 작성자가 직접 쓴 것처럼 읽혀야 하며, 원본에 드러나지 않았던 미묘하면서도 새로운 의미와 관점을 포함해야 합니다.
 
+        [작업 지시]
+        1. 원본 일기의 어휘, 문장 구조, 전반적인 어조를 파악하세요.
+
+        2. {life_orientation} 관점에서 의미를 확장할 때:
+        - 원본 일기의 사실(사건, 행동, 감정)을 유지하세요.
+        - 제시된 발췌문의 위치에 새로운 통찰을 덧붙이되,
+        - {highlight}를 자연스럽게 강조하고
+        - 원본 글의 길이, 내러티브, 감정적 연속성을 크게 해치지 않도록 합니다.
+
+        [입력]
+        1. 원본 일기:
+        ```
+        {diary_entry}
+        ```
+        2. 관련 발췌 및 관점:
+        ```
+        {relevant_points}
+        ```
+
+        {format_instructions}
+        """
+    )
+)
 
 
 class PerspectiveAgent:
@@ -231,7 +258,7 @@ class PerspectiveAgent:
         """특정 관점의 설명을 반환"""
         if life_orientation not in self.life_orientations:
             raise ValueError(f"정의되지 않은 관점입니다: {life_orientation}")
-        return self.life_orientations[life_orientation]['explanation']
+        return self.life_orientations[life_orientation]['explanation_v2']
 
     def get_life_orientation_highlights(self, life_orientation: str) -> str:
         """특정 관점의 강조 사항을 반환"""

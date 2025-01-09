@@ -108,12 +108,15 @@ class ToneAgent:
     def refine_with_tone(self, diary_entry: str, original_diary_entry: str, tone: str) -> str:
         try:
             if tone=="my_tone":
+                """
                 tone_chain = self._create_tone_chain(tone)
                 tone_result = tone_chain.invoke({
                     "diary_entry": diary_entry,
                     "original_diary_entry": original_diary_entry,
                     "format_instructions": self.tone_parser.get_format_instructions()
                 })
+                """
+                return diary_entry
             else:
                 tone_chain = self._create_tone_chain(tone)
                 tone_result = tone_chain.invoke({
@@ -122,7 +125,7 @@ class ToneAgent:
                     "tone_example": self.get_random_example(tone),
                     "format_instructions": self.tone_parser.get_format_instructions()
                 })
-            return tone_result.diary_entry
+                return tone_result.diary_entry
         
         except Exception as e:
             print(f"증강 중 오류 발생: {str(e)}")

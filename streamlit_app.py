@@ -435,11 +435,11 @@ else:
         "accepting":"수용적"
     }
     life_orientation_map_v2 = {
-        "future-oriented":"미래지향적 시각", 
-        "reality-based":"현실적 시각", 
-        "optimistic":"낙관적 시각", 
-        "growth-oriented":"성장주의적 시각", 
-        "accepting":"수용적 시각"
+        "future-oriented":"미래를 생각하기", 
+        "reality-based":"현실적으로 보기", 
+        "optimistic":"낙관적으로 보기", 
+        "growth-oriented":"성장에 집중하기", 
+        "accepting":"있는 그대로 받아들이기"
     }
     value_map = {
         "balance":"균형", 
@@ -497,9 +497,9 @@ else:
             st.button("저장하기", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
 
     with col2:
-        selector = st.expander("하루에 관점 더하기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
+        selector = st.expander("조금 다르게 바라보기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
-        selector.text("오늘을 바라보고픈 태도는")
+        selector.text("어떤 마음으로 바라볼까?")
         life_orientation = selector.pills(
             "삶의 태도", 
             options=life_orientation_map_v2.keys(), 
