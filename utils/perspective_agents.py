@@ -172,7 +172,7 @@ class PerspectiveAgent:
     
     def _create_discover_chain(self):
         """주어진 관점에서 다시 바라볼 포인트를 발견하는 체인 생성"""
-        return discover_template | self.gpt | self.discover_parser
+        return discover_template_v2 | self.gpt | self.discover_parser
     
     def _create_augment_chain(self):
         """검토를 마친 포인트를 적용하여 일기 증강"""
@@ -181,13 +181,17 @@ class PerspectiveAgent:
     def augment_from_perspective(self, diary_entry: str, life_orientation: str) -> str:
         """주어진 관점에서 일기를 분석하고 증강"""
         try:
+            life_orientations_desc = self.get_life_orientation_definition(life_orientation)
+            life_orientations_highlight = self.get_life_orientation_highlights(life_orientation)
+
             # 1. 주어진 관점으로 재해석할 포인트 발견
             discovery_chain = self._create_discover_chain()
-            life_orientations_desc = self.get_life_orientation_definition(life_orientation)
+            
             discovery_result = discovery_chain.invoke({
                 "diary_entry": diary_entry,
                 "life_orientation": life_orientation,
                 "life_orientation_desc": life_orientations_desc,
+                "highlight": life_orientations_highlight,
                 "format_instructions": self.discover_parser.get_format_instructions()
             })
             print("Discovery Result Type:", type(discovery_result))
@@ -210,7 +214,7 @@ class PerspectiveAgent:
             print("====================\n발견된 부분: ", points_str)
             
             augment_chain = self._create_augment_chain()
-            life_orientations_highlight = self.get_life_orientation_highlights(life_orientation)
+            
             augmented_result = augment_chain.invoke({
                 "diary_entry": diary_entry,
                 "relevant_points": points_str,  # 문자열로 변환된 버전 사용
