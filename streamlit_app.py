@@ -176,7 +176,7 @@ def save_api_response(user_id: str, session_id: str, diary_entry: str, result: s
         # 데이터 저장
         responses.append({
             'life_orientation': life_orientation,  # 사용자가 선택한 삶의 태도
-            'value': value,                 # 선택된 가치
+            #'value': value,                 # 선택된 가치
             'tone': tone,                   # 선택된 어조
             'input_entry': diary_entry,     # 입력으로 사용된 일기
             'result': result,               # AI 일기 생성 결과
