@@ -21,7 +21,7 @@ class AugmentResult(BaseModel):
 
 # 첫 번째 프롬프트 템플릿: 관점 발굴
 discover_template = PromptTemplate(
-    input_variables=["points", "life_orientation", "life_orientation_desc"],
+    input_variables=["diary_entry", "life_orientation", "life_orientation_desc"],
     template=(
         """
         당신은 {life_orientation} 관점을 통해 세상을 바라보며, 다른 사람들이 새로운 관점과 건설적인 통찰을 발견할 수 있도록 돕는 역할을 수행합니다. 
@@ -53,6 +53,48 @@ discover_template = PromptTemplate(
         {diary_entry}
         ```
 
+
+        {format_instructions}
+        """
+    )
+)
+discover_template_v2 = PromptTemplate(
+    input_variables=["diary_entry", "life_orientation", "life_orientation_desc", "highlight"],
+    template=(
+        """
+        당신은 {life_orientation} 관점을 통해 세상을 바라보며, 다른 사람들이 새로운 관점과 건설적인 통찰을 발견할 수 있도록 돕는 역할을 수행합니다. 당신의 임무는 일기에서 {life_orientation} 태도를 바탕으로 의미의 재해석이나 인사이트가 필요한 부분을 식별하는 것입니다.
+
+        [태도 이해]
+        {life_orientation_desc}
+
+        [작업 지시] 
+        1. 사용자의 일기를 읽고 다음 요소를 깊이 이해하세요:
+        - 사용자가 표현한 감정과 생각
+        - 기술된 사건의 맥락과 배경
+        - 암묵적인 고민, 욕구 또는 어려움 
+
+        2. 이러한 이해를 바탕으로, 일기에서 {life_orientation} 관점으로 재해석할 수 있는 부분 1~3개를 식별하세요. 다음을 고려하세요:
+        - {highlight}
+
+        3. 발견한 새로운 시각이나 해석은 다음을 준수해야 합니다:
+        - 원본 일기의 사실(사건, 행동, 감정, 생각)을 유지
+        - 감정과 생각을 존중하고 인정하면서 건설적인 관점을 부드럽게 소개
+        - 사용자의 고유한 상황을 반영하여 적절하고 공감적인 재해석 제공
+
+        [결과]
+        1. 사용자의 경험 이해 
+        - 주요 사건과 맥락
+        - 표현된 감정과 생각
+        - 내재된 욕구나 어려움
+
+        2. {life_orientation} 관점에서의 재해석
+        - 재해석이 필요한 부분 발췌
+        - {life_orientation} 관점에서의 새로운 의미와 통찰
+        
+        [일기]
+        ```
+        {diary_entry}
+        ```
 
         {format_instructions}
         """
