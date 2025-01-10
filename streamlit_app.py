@@ -363,7 +363,7 @@ def initialize_openai_api():
 if "session_id" not in st.session_state:
     c1, c2, c3 = st.columns([0.25, 0.5, 0.25], vertical_alignment="top")
     with c2:
-        st.title("일기 작성하러 가기")
+        st.title("시작하기")
         user_id = st.text_input("아이디", placeholder="아이디를 입력해주세요.")
         password = st.text_input("비밀번호", type="password", placeholder="비밀번호를 입력해주세요.", kwargs={"autocomplete": "off"})
 
@@ -386,15 +386,6 @@ else:
         return DiaryAnalyzer(api_key_gpt, api_key_claude)  # 설정된 API 키 사용
 
     analyzer = get_analyzer()
-
-    # 초기 화면에서는 손 이모티콘 rain만 표시
-    if 'analysis_result' not in st.session_state:
-        rain(
-            emoji="👋🏻",
-            font_size=36,
-            falling_speed=10,
-            animation_length="0.5",
-        )
     
     if st.session_state.get("save_success", False):
         rain(
@@ -435,11 +426,11 @@ else:
         "accepting":"수용적"
     }
     life_orientation_map_v2 = {
-        "future-oriented":"미래를 생각하기", 
-        "reality-based":"현실적으로 보기", 
-        "optimistic":"낙관적으로 보기", 
-        "growth-oriented":"성장에 집중하기", 
-        "accepting":"있는 그대로 받아들이기"
+        "future-oriented":"미래지향적", 
+        "reality-based":"현실적", 
+        "optimistic":"낙관적", 
+        "growth-oriented":"성장중심적", 
+        "accepting":"수용적"
     }
     value_map = {
         "balance":"균형", 
@@ -456,11 +447,11 @@ else:
         "emotional": "🌌 감성적인"
     }
     tone_map_v2 = {
-        "my_tone": "💁 익숙하게",
-        "friendly": "😁 따뜻하고 친근하게", 
-        "calm": "🍵 고요하고 차분하게", 
+        "my_tone": "💁 내가 쓴 그대로",
+        "warm": "😁 따뜻하고 친근하게", 
+        "calm": "🍵 담담하고 차분하게", 
         "funny": "🤡 장난스럽고 유쾌하게",
-        "emotion": "🌌 깊고 감미롭게" 
+        "emotional": "🌌 부드럽고 서정적으로" 
     }
 
     # "with" notation
@@ -499,7 +490,7 @@ else:
     with col2:
         selector = st.expander("조금 다르게 바라보기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
-        selector.text("이날을 어떤 시선으로 볼까?")
+        selector.text("이날을 어떤 시선으로 볼까요?")
         life_orientation = selector.pills(
             "삶의 태도", 
             options=life_orientation_map_v2.keys(), 
@@ -519,7 +510,7 @@ else:
         #if value:
         #    st.session_state["value"] = value
         # 옵션 선택 세션 - tone
-        selector.text("어떤 느낌으로 표현할까?")
+        selector.text("어떤 느낌으로 표현할까요?")
         tone = selector.pills(
             "언어 선택", 
             options=tone_map_v2.keys(), 
@@ -577,7 +568,7 @@ else:
                     """
                 ):
                     description = st.container()
-                    description.markdown(f":violet[**{life_orientation_map_v2[st.session_state.result_life_orientation]}** 시선을 담아 오늘을 이렇게 볼 수도 있어요.]")
+                    description.markdown(f":violet[**{life_orientation_map_v2[st.session_state.result_life_orientation]}** 시선을 담아 이렇게 볼 수도 있어요.]")
                 # 선택된 태그
                 with st.container():
                     tags = st.container()
