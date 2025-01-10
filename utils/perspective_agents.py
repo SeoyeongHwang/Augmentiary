@@ -79,7 +79,6 @@ discover_template_v2 = PromptTemplate(
         - {highlight}을 강조
         - 감정과 생각을 존중하고 인정하면서 건설적인 관점을 부드럽게 소개
         - 사용자의 고유한 상황을 반영하여 적절하고 공감적인 내용 제공
-        - 내용에 비해 지나친 해석이나 설명은 피하기
 
         
         [일기]
@@ -111,8 +110,7 @@ augment_template = PromptTemplate(
         - 발췌된 원본 글을 참고하여, 자연스러운 위치에 확장을 통합하세요.
 
         3. 추가된 내용이 충족해야 할 조건:
-        - {life_orientation}인 관점에서 {highlight}을 강조해야 합니다.
-        - 원본 텍스트에 비해 비례적으로 작성하여 원본 글을 압도하지 않아야 합니다.
+        - {life_orientation}인 관점에서 {highlight}에 집중해야 합니다.
         - 흐름과 감정적 연속성을 해치지 않도록 자연스러워야 합니다.
         - 스스로에게 제안하거나 질문하는 어조를 고려하세요.
 
@@ -196,7 +194,7 @@ class PerspectiveAgent:
     
     def _create_augment_chain(self):
         """검토를 마친 포인트를 적용하여 일기 증강"""
-        return augment_template | self.gpt | self.augment_parser
+        return augment_template_v2 | self.gpt | self.augment_parser
     
     def augment_from_perspective(self, diary_entry: str, life_orientation: str) -> str:
         """주어진 관점에서 일기를 분석하고 증강"""
