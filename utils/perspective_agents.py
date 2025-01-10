@@ -10,9 +10,9 @@ from pathlib import Path
 # 추출 결과 모델 정의
 class DiscoveringSteps(BaseModel):
     quotes: str = Field(description="An excerpt from the original diary.")
-    new_perspective: str = Field(description="An interpretation from a given perspective, including reasons and justifications.")
+    new_perspective: str = Field(description="New meaning and insights from a given perspective on an excerpt.")
 class DiscoveredResults(BaseModel):
-    points: list[DiscoveringSteps] = Field(description="List of extracted excerpts and explanations.")
+    points: list[DiscoveringSteps] = Field(description="List of extracted excerpts and its interpretations.")
 # 증강 결과 모델 정의
 class AugmentResult(BaseModel):
     diary_entry: str = Field(description="증강된 일기 내용")
@@ -62,10 +62,9 @@ discover_template_v2 = PromptTemplate(
     input_variables=["diary_entry", "life_orientation", "life_orientation_desc", "highlight"],
     template=(
         """
-        당신은 {life_orientation} 관점을 통해 세상을 바라보며, 다른 사람들이 새로운 관점과 건설적인 통찰을 발견할 수 있도록 돕는 역할을 수행합니다. 당신의 임무는 일기에서 {life_orientation} 태도를 바탕으로 의미의 재해석이나 인사이트가 필요한 부분을 식별하는 것입니다.
-
-        [태도 이해]
+        당신은 {life_orientation} 관점을 통해 세상을 바라보며, 다른 사람들이 새로운 관점과 건설적인 생각을 발견할 수 있도록 돕는 역할입니다. 
         {life_orientation_desc}
+        당신의 임무는 {life_orientation} 시각으로 일기를 읽고, 의미의 재해석이나 인사이트가 필요한 부분을 식별하는 것입니다.
 
         [작업 지시] 
         1. 사용자의 일기를 읽고 다음 요소를 깊이 이해하세요:
@@ -74,22 +73,13 @@ discover_template_v2 = PromptTemplate(
         - 암묵적인 고민, 욕구 또는 어려움 
 
         2. 이러한 이해를 바탕으로, 일기에서 {life_orientation} 관점으로 재해석할 수 있는 부분 1~3개를 식별하세요. 다음을 고려하세요:
-        - {highlight}
 
         3. 발견한 새로운 시각이나 해석은 다음을 준수해야 합니다:
         - 원본 일기의 사실(사건, 행동, 감정, 생각)을 유지
+        - {highlight}을 강조
         - 감정과 생각을 존중하고 인정하면서 건설적인 관점을 부드럽게 소개
-        - 사용자의 고유한 상황을 반영하여 적절하고 공감적인 재해석 제공
+        - 사용자의 고유한 상황을 반영하여 적절하고 공감적인 내용 제공
 
-        [결과]
-        1. 사용자의 경험 이해 
-        - 주요 사건과 맥락
-        - 표현된 감정과 생각
-        - 내재된 욕구나 어려움
-
-        2. {life_orientation} 관점에서의 재해석
-        - 재해석이 필요한 부분 발췌
-        - {life_orientation} 관점에서의 새로운 의미와 통찰
         
         [일기]
         ```
@@ -120,7 +110,7 @@ augment_template = PromptTemplate(
         - 발췌된 원본 글을 참고하여, 자연스러운 위치에 확장을 통합하세요.
 
         3. 추가된 내용이 충족해야 할 조건:
-        - {life_orientation}인 관점과 일치하며, {highlight}를 강조해야 합니다.
+        - {life_orientation}인 관점과 일치하며, {highlight}을 강조해야 합니다.
         - 원본 텍스트와 비교하여 간결하고 비례적으로 작성하여 원본 글을 압도하지 않아야 합니다.
         - 흐름과 감정적 연속성을 해치지 않도록 자연스러워야 합니다.
 
@@ -145,12 +135,13 @@ augment_template_v2 = PromptTemplate(
         당신은 이 일기의 작성자가 되어, {life_orientation}적인 관점과 인사이트를 원본 일기에 자연스럽게 통합하는 역할을 합니다. 최종적으로 완성된 일기는 마치 처음부터 작성자가 직접 쓴 것처럼 읽혀야 하며, 원본에 드러나지 않았던 미묘하면서도 새로운 의미와 관점을 포함해야 합니다.
 
         [작업 지시]
-        1. 원본 일기의 어휘, 문장 구조, 전반적인 어조를 파악하세요.
+        1. 원본 일기의 어휘, 문장 구조, 전반적인 어조를 따라하세요.
 
         2. {life_orientation} 관점에서 의미를 확장할 때:
         - 원본 일기의 사실(사건, 행동, 감정)을 유지하세요.
         - 제시된 발췌문의 위치에 새로운 통찰을 덧붙이되,
-        - {highlight}를 자연스럽게 강조하고
+        - 관점 설명을 그대로 복사하지 말고 영감으로 삼으십시오.
+        - {highlight}를 자연스럽게 강조하고,
         - 원본 글의 길이, 내러티브, 감정적 연속성을 크게 해치지 않도록 합니다.
 
         [입력]
@@ -173,7 +164,7 @@ class PerspectiveAgent:
     def __init__(self, api_key_gpt: str, api_key_claude: str):
         self.life_orientations = self._load_life_orientations()
         self.gpt = ChatOpenAI(
-            model_name="gpt-4o-mini",
+            model_name="gpt-4o",
             temperature=1.0,
             openai_api_key=api_key_gpt
         )
@@ -249,6 +240,7 @@ class PerspectiveAgent:
                 "highlight": life_orientations_highlight,
                 "format_instructions": self.augment_parser.get_format_instructions()
             })
+            print("====================\n", augmented_result.diary_entry)
             return augmented_result.diary_entry
             
         except Exception as e:

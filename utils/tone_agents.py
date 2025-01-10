@@ -13,23 +13,24 @@ tone_template = PromptTemplate(
         """
         당신은 글쓰기 전문가입니다.
 
-        주어진 일기의 내용은 유지하되, '{tone}' 톤을 다음 측면에서 적용해 주세요:
-        - 묘사의 깊이
-        - 표현의 가벼움
-        - 주로 사용되는 어투
-        - 이모티콘, 아스키 이모지, 웃음 문자(예: 'ㅋㅋ', 'ㅎㅎ') 등의 활용
-
-        유의사항:
-        - 필요 시 가독성을 위해 적절한 줄바꿈을 추가하세요.
-        - 표현의 일관성과 자연스러움을 유지하세요.
-
-        '{tone}' 톤의 예시:
-        "{tone_example}"
-
         일기:
         ```
         {diary_entry}
         ```
+
+        '{tone}' 톤의 예시:
+        "{tone_example}"
+
+        주어진 일기의 내용은 유지하되, 예시를 참고하여 '{tone}' 톤을 다음 측면에서 적용해 주세요:
+        - 묘사의 깊이
+        - 표현의 가벼움
+        - 주로 사용되는 어투
+        - (예시에 포함된 경우) 이모티콘, 아스키 이모지, 웃음 문자(예: 'ㅋㅋ', 'ㅎㅎ') 등의 활용
+
+        유의사항:
+        - 원본 일기의 사실(사건, 행동, 감정)을 유지하세요.
+        - 필요 시 가독성을 위해 적절한 줄바꿈을 추가하세요.
+        - 표현의 일관성과 자연스러움을 유지하세요.
 
         {format_instructions}
         """
@@ -88,7 +89,9 @@ class ToneAgent:
             all_examples = json.load(f)
         
         # 톤에 따라 예시를 필터링
-        return all_examples
+        tone_keys = ["warm", "calm", "funny", "emotional"]
+        filtered_examples = {tone: examples for tone, examples in all_examples.items() if tone in tone_keys}
+        return filtered_examples
     
     def get_random_example(self, tone: str) -> str:
         """특정 톤의 랜덤 예시 반환"""
