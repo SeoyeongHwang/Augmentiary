@@ -118,7 +118,7 @@ class ToneAgent:
                     "format_instructions": self.tone_parser.get_format_instructions()
                 })
                 
-                return diary_entry
+                return tone_result.diary_entry
             else:
                 tone_chain = self._create_tone_chain(tone)
                 tone_result = tone_chain.invoke({
