@@ -41,17 +41,15 @@ my_tone_template = PromptTemplate(
     input_variables=["diary_entry", "original_diary_entry"],
     template=(
         """
-        당신은 글쓰기 전문가입니다.
+        당신은 글쓰기 전문가입니다. '확장된 글'을 '원본 글'을 쓴 사람이 작성한 것처럼 다듬어야 합니다. 
 
-        '확장된 글'을 '원본 글'과 비교하여 동일한 부분은 유지하되, 다른 부분에 한 하여 '원본 글'의 톤을 다음 측면에서 '확장된 글'과 비교분석하세요:
+        '확장된 글'을 '원본 글'과 비교하여 동일한 부분은 유지하되, 다른 부분에 한해서 '원본 글'의 표현을 반영해 자연스럽게 다듬으세요:
         - 어휘와 단어 선택
         - 문장의 길이와 구조
         - 전반적인 어조
 
         유의사항:
-        - 두 글을 비교 분석 하세요.
-        - 어떻게 다듬을 것인지 계획하세요.
-        - 수정된 부분이 있을 경우 전체 일기를 반환하세요. 원본 글의 내용은 그대로 유지되고, 추가된 부분의 표현이 다듬어진 상태여야 합니다.
+        - 원본 글의 내용은 그대로 유지되고, 추가된 부분의 '표현이나 어휘'가 다듬어진 상태여야 합니다.
         - 수정 사항이 없는 경우 원본 글을 반환하세요.
 
         원본 글:
@@ -111,14 +109,14 @@ class ToneAgent:
     def refine_with_tone(self, diary_entry: str, original_diary_entry: str, tone: str) -> str:
         try:
             if tone=="my_tone":
-                """
+                
                 tone_chain = self._create_tone_chain(tone)
                 tone_result = tone_chain.invoke({
                     "diary_entry": diary_entry,
                     "original_diary_entry": original_diary_entry,
                     "format_instructions": self.tone_parser.get_format_instructions()
                 })
-                """
+                
                 return diary_entry
             else:
                 tone_chain = self._create_tone_chain(tone)
