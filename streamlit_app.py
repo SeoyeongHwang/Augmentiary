@@ -426,11 +426,11 @@ else:
         "accepting":"수용적"
     }
     life_orientation_map_v2 = {
-        "future-oriented":"미래지향적", 
-        "reality-based":"현실적", 
-        "optimistic":"낙관적", 
-        "growth-oriented":"성장중심적", 
-        "accepting":"수용적"
+        "future-oriented":"Future-oriented", 
+        "reality-based":"Realistic", 
+        "optimistic":"Optimistic", 
+        "growth-oriented":"Growth-oriented", 
+        "accepting":"Accepting"
     }
     value_map = {
         "balance":"균형", 
@@ -447,11 +447,11 @@ else:
         "emotional": "🌌 감성적인"
     }
     tone_map_v2 = {
-        "my_tone": "💁 내가 쓴 그대로",
-        "warm": "😁 따뜻하고 친근하게", 
-        "calm": "🍵 담담하고 차분하게", 
-        "funny": "🤡 장난스럽고 유쾌하게",
-        "emotional": "🌌 부드럽고 서정적으로" 
+        "my_tone": "💁 As I wrote it",
+        "warm": "😁 Warm and friendly", 
+        "calm": "🍵 Calm and peaceful", 
+        "funny": "🤡 Playful and cheerful",
+        "emotional": "🌌 Gentle and emotional" 
     }
 
     # "with" notation
@@ -482,17 +482,17 @@ else:
         btn1, btn2 = st.columns(2)
         with btn1:
             # 원래 처음에 입력한 일기로 돌아가기
-            st.button("원래대로", icon=":material/refresh:", type='secondary', use_container_width=True, on_click=handle_load_original)
+            st.button("Back to Original", icon=":material/refresh:", type='secondary', use_container_width=True, on_click=handle_load_original)
         with btn2:
             # 일기 저장하기
-            st.button("저장하기", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
+            st.button("Save Entry", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
 
     with col2:
-        selector = st.expander("조금 다르게 바라보기", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
+        selector = st.expander("View a Bit Differently", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
-        selector.text("이날을 어떤 시선으로 볼까요?")
+        selector.text("How would you like to view this day?")
         life_orientation = selector.pills(
-            "삶의 태도", 
+            "Life-orientation", 
             options=life_orientation_map_v2.keys(), 
             format_func=lambda option: life_orientation_map_v2[option], 
             label_visibility="collapsed"
@@ -510,9 +510,9 @@ else:
         #if value:
         #    st.session_state["value"] = value
         # 옵션 선택 세션 - tone
-        selector.text("어떤 느낌으로 표현할까요?")
+        selector.text("Which mood would you like to use to write this?")
         tone = selector.pills(
-            "언어 선택", 
+            "Tone", 
             options=tone_map_v2.keys(), 
             format_func=lambda option: tone_map_v2[option], 
             label_visibility="collapsed"
@@ -533,7 +533,7 @@ else:
 
             # 결과 요청 버튼
             st.button(
-                "🪄 다시 바라보기", 
+                "🪄 Get a New Perspective", 
                 type='secondary', 
                 use_container_width=True, 
                 disabled=st.session_state.get("button_disabled", True),
@@ -543,7 +543,7 @@ else:
 
         # 결과를 입력 필드에 적용하는 버튼 추가
         if st.session_state.get('show_update_entry_button', False):  # 버튼 표시 플래그 확인
-            st.button("내 일기에 담기", icon=':material/north_west:', type='secondary', on_click=handle_entry_update)
+            st.button("Replace My Diary", icon=':material/north_west:', type='secondary', on_click=handle_entry_update)
 
         if st.session_state.get('show_rain'):
             rain(emoji="🍀", font_size=36, falling_speed=10, animation_length="1",)
