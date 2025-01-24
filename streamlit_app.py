@@ -471,7 +471,7 @@ else:
         # 일기 입력 섹션
         diary_entry = st.text_area(
             "diary_entry", 
-            placeholder="있었던 일, 생각, 감정에 대해 자유롭게 적어보세요.", 
+            placeholder="Feel free to write about the events, thoughts, and feelings you experienced.", 
             height=462, 
             label_visibility="collapsed",
             disabled=False,
@@ -488,7 +488,7 @@ else:
             st.button("Save Entry", icon=":material/save:", type="secondary", use_container_width=True, on_click=handle_diary_save)
 
     with col2:
-        selector = st.expander("View a Bit Differently", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
+        selector = st.expander("See this day a little differently", icon="🔮", expanded=st.session_state.get("expander_state", True))  # 세션 상태 사용
         # 옵션 선택 섹션 - life_orientation
         selector.text("How would you like to view this day?")
         life_orientation = selector.pills(
@@ -568,7 +568,7 @@ else:
                     """
                 ):
                     description = st.container()
-                    description.markdown(f":violet[**{life_orientation_map_v2[st.session_state.result_life_orientation]}** 시선을 담아 이렇게 볼 수도 있어요.]")
+                    description.markdown(f":violet[Here's how you might see it from a **{life_orientation_map_v2[st.session_state.result_life_orientation]}** perspective.]")
                 # 선택된 태그
                 with st.container():
                     tags = st.container()
